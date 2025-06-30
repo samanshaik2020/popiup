@@ -4,40 +4,81 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 const RedirectPage = () => {
   const { slug } = useParams();
   const [showPopup, setShowPopup] = useState(false);
   const [linkData, setLinkData] = useState<any>(null);
   const [countdown, setCountdown] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Find the link data
-    const allLinks = JSON.parse(localStorage.getItem("userLinks") || "[]");
-    const link = allLinks.find((l: any) => l.shortUrl.includes(slug));
-    
-    if (link) {
-      setLinkData(link);
-      setCountdown(link.popup.delay);
-      
-      // Update click count
-      link.clicks += 1;
-      localStorage.setItem("userLinks", JSON.stringify(allLinks));
-      
-      // Show popup after delay
-      if (link.popup.delay > 0) {
-        const timer = setTimeout(() => {
-          setShowPopup(true);
-        }, link.popup.delay * 1000);
-        
-        return () => clearTimeout(timer);
-      } else {
-        setShowPopup(true);
+    // Fetch link data from Supabase based on slug
+    async function fetchLinkData() {
+      if (!slug) {
+        window.location.href = "/";
+        return;
       }
-    } else {
-      // Redirect to homepage if link not found
-      window.location.href = "/";
+
+      try {
+        setIsLoading(true);
+        
+        // Query short_links table by slug
+        const { data: linkData, error: linkError } = await supabase
+          .from('short_links')
+          .select('*, popups(*)')
+          .eq('slug', slug)
+          .single();
+
+        if (linkError || !linkData) {
+          console.error("Error fetching link:", linkError);
+          window.location.href = "/";
+          return;
+        }
+
+        // Increment click count
+        await supabase
+          .from('short_links')
+          .update({ clicks: (linkData.clicks || 0) + 1 })
+          .eq('id', linkData.id);
+
+        // Set data for display
+        setLinkData({
+          ...linkData,
+          popup: linkData.popups,
+          originalUrl: linkData.destination_url
+        });
+
+        const delay = linkData.popups?.delay || 0;
+        setCountdown(delay);
+        
+        // Show popup after delay
+        if (delay > 0) {
+          const timer = setTimeout(() => {
+            setShowPopup(true);
+          }, delay * 1000);
+          
+          return () => clearTimeout(timer);
+        } else {
+          setShowPopup(true);
+        }
+      } catch (err) {
+        console.error("Error processing link:", err);
+        toast({
+          title: "Error",
+          description: "Could not load the link. Please try again.",
+          variant: "destructive"
+        });
+        window.location.href = "/";
+      } finally {
+        setIsLoading(false);
+      }
     }
+
+    fetchLinkData();
   }, [slug]);
 
   useEffect(() => {
@@ -52,20 +93,22 @@ const RedirectPage = () => {
 
   const handleRedirect = () => {
     if (linkData) {
-      window.location.href = linkData.originalUrl;
+      window.location.href = linkData.destination_url || linkData.originalUrl;
     }
   };
 
   const handleButtonClick = () => {
-    if (linkData?.popup.buttonUrl) {
-      window.open(linkData.popup.buttonUrl, '_blank');
+    if (linkData?.popup?.button_link || linkData?.popup?.buttonUrl) {
+      window.open(linkData.popup.button_link || linkData.popup.buttonUrl, '_blank');
     }
   };
 
   const getPlacementStyles = () => {
-    if (!linkData) return "";
+    if (!linkData || !linkData.popup) return "";
     
-    switch (linkData.popup.placement) {
+    const placement = linkData.popup.placement;
+    
+    switch (placement) {
       case "top":
         return "top-4 left-1/2 transform -translate-x-1/2";
       case "left":
@@ -75,9 +118,20 @@ const RedirectPage = () => {
       case "center":
         return "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2";
       default:
-        return "top-4 left-1/2 transform -translate-x-1/2";
+        return "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2";
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+          <p className="text-gray-600 mb-4">Please wait while we fetch your content.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!linkData) {
     return (
@@ -118,19 +172,19 @@ const RedirectPage = () => {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                  {linkData.popup.logoText && (
+                  {(linkData.popup?.logo_text || linkData.popup?.logoText) && (
                     <div className="text-sm font-medium text-purple-600 mb-2">
-                      {linkData.popup.logoText}
+                      {linkData.popup?.logo_text || linkData.popup?.logoText}
                     </div>
                   )}
-                  {linkData.popup.ctaName && (
+                  {(linkData.popup?.cta_name || linkData.popup?.ctaName) && (
                     <h3 className="font-semibold text-gray-900 mb-2">
-                      {linkData.popup.ctaName}
+                      {linkData.popup?.cta_name || linkData.popup?.ctaName}
                     </h3>
                   )}
-                  {linkData.popup.ctaDescription && (
+                  {(linkData.popup?.cta_description || linkData.popup?.ctaDescription) && (
                     <p className="text-sm text-gray-600 mb-4">
-                      {linkData.popup.ctaDescription}
+                      {linkData.popup?.cta_description || linkData.popup?.ctaDescription}
                     </p>
                   )}
                 </div>
@@ -145,12 +199,12 @@ const RedirectPage = () => {
               </div>
               
               <div className="space-y-3">
-                {linkData.popup.buttonText && (
+                {(linkData.popup?.button_text || linkData.popup?.buttonText) && (
                   <Button 
                     className="w-full bg-purple-600 hover:bg-purple-700"
                     onClick={handleButtonClick}
                   >
-                    {linkData.popup.buttonText}
+                    {linkData.popup?.button_text || linkData.popup?.buttonText}
                   </Button>
                 )}
                 

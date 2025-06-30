@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
 import { LinkIcon, Mail, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -15,30 +16,58 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
       toast({
         title: "Password mismatch",
-        description: "Please make sure your passwords match",
-        variant: "destructive",
+        description: "Passwords don't match",
+        variant: "destructive"
       });
       return;
     }
-
+    
     setIsLoading(true);
     
-    setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ email, id: "user123" }));
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to Rite.ly - let's get started",
+    try {
+      const { error, user, session } = await signUp({
+        email,
+        password,
       });
-      navigate("/dashboard");
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email to verify your account."
+      });
+      
+      // Redirect to dashboard if auto-confirm is enabled, otherwise to login
+      if (session) {
+        
+        navigate("/dashboard");
+      } else {
+        // Some Supabase configurations might not return the user immediately
+        // and require email verification first
+        toast({
+          title: "Verification email sent",
+          description: "Please check your email to confirm your account",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -55,7 +84,7 @@ const Register = () => {
           <p className="text-gray-600 mt-2">Start monetizing your links in minutes</p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleRegister} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
               <div className="relative">

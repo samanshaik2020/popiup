@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
 import { LinkIcon, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,20 +15,39 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     setIsLoading(true);
     
-    setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ email, id: "user123" }));
+    try {
+      const { error, user, session } = await signIn({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast({
         title: "Welcome back!",
         description: "You've been successfully logged in",
       });
+      
       navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error.message);
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -44,7 +64,7 @@ const Login = () => {
           <p className="text-gray-600 mt-2">Sign in to your account to continue</p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
               <div className="relative">

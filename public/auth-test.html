@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Auth Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { color: #4f46e5; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            overflow: auto;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        input {
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <h1>Supabase Authentication Test</h1>
+    
+    <div class="card">
+        <h2>Connection Status</h2>
+        <div id="connection-status">Testing connection...</div>
+    </div>
+    
+    <div class="card">
+        <h2>Current Session</h2>
+        <div id="session-status">Checking session...</div>
+        <pre id="session-data"></pre>
+    </div>
+    
+    <div class="card">
+        <h2>Authentication Test</h2>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter your password">
+        </div>
+        <button id="signup-btn">Sign Up</button>
+        <button id="signin-btn">Sign In</button>
+        <button id="signout-btn">Sign Out</button>
+        <div id="auth-status"></div>
+    </div>
+    
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://tfeggrnvbvasgspmukrc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmZWdncm52YnZhc2dzcG11a3JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNjcxMTEsImV4cCI6MjA2Njg0MzExMX0.OU4CF4-yc7O30qx3gpqfLGBOfb_e0cEQqI0zY1vU8fI';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Helper function to display messages
+        function displayMessage(elementId, message, type = 'normal') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = message;
+                element.className = type;
+            }
+        }
+        
+        // Test connection
+        async function testConnection() {
+            try {
+                // Test if supabase object is initialized properly
+                if (!supabase || typeof supabase !== 'object' || !supabase.auth) {
+                    throw new Error('Supabase client is not properly initialized');
+                }
+                
+                displayMessage('connection-status', '✅ Supabase client is properly initialized', 'success');
+                
+                // Test API connection with a simple query
+                const { data, error } = await supabase
+                    .from('popups')
+                    .select('count', { count: 'exact', head: true })
+                    .limit(1);
+                
+                if (error) {
+                    displayMessage('connection-status', `❌ API connection failed: ${error.message}`, 'error');
+                } else {
+                    displayMessage('connection-status', '✅ API connection successful', 'success');
+                }
+            } catch (error) {
+                displayMessage('connection-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Check current session
+        async function checkSession() {
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    displayMessage('session-status', `❌ Failed to get session: ${error.message}`, 'error');
+                } else {
+                    const hasSession = !!data.session;
+                    displayMessage(
+                        'session-status', 
+                        hasSession ? '✅ User is logged in' : '⚠️ No active session found', 
+                        hasSession ? 'success' : 'warning'
+                    );
+                    
+                    document.getElementById('session-data').textContent = 
+                        hasSession ? JSON.stringify(data.session, null, 2) : 'No session data';
+                }
+            } catch (error) {
+                displayMessage('session-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Sign up
+        document.getElementById('signup-btn').addEventListener('click', async () => {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                if (!email || !password) {
+                    return displayMessage('auth-status', '❌ Email and password are required', 'error');
+                }
+                
+                displayMessage('auth-status', 'Signing up...');
+                
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    displayMessage('auth-status', `❌ Sign up failed: ${error.message}`, 'error');
+                } else {
+                    displayMessage('auth-status', '✅ Sign up successful! Check your email for confirmation.', 'success');
+                    console.log('Sign up data:', data);
+                    checkSession();
+                }
+            } catch (error) {
+                displayMessage('auth-status', `❌ Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Sign in
+        document.getElementById('signin-btn').addEventListener('click', async () => {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                if (!email || !password) {
+                    return displayMessage('auth-status', '❌ Email and password are required', 'error');
+                }
+                
+                displayMessage('auth-status', 'Signing in...');
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    displayMessage('auth-status', `❌ Sign in failed: ${error.message}`, 'error');
+                } else {
+                    displayMessage('auth-status', '✅ Sign in successful!', 'success');
+                    console.log('Sign in data:', data);
+                    checkSession();
+                }
+            } catch (error) {
+                displayMessage('auth-status', `❌ Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Sign out
+        document.getElementById('signout-btn').addEventListener('click', async () => {
+            try {
+                displayMessage('auth-status', 'Signing out...');
+                
+                const { error } = await supabase.auth.signOut();
+                
+                if (error) {
+                    displayMessage('auth-status', `❌ Sign out failed: ${error.message}`, 'error');
+                } else {
+                    displayMessage('auth-status', '✅ Sign out successful', 'success');
+                    checkSession();
+                }
+            } catch (error) {
+                displayMessage('auth-status', `❌ Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Run tests on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            testConnection();
+            checkSession();
+        });
+    </script>
+</body>
+</html>

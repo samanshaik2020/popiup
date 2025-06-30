@@ -3,40 +3,62 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
-import { LinkIcon, Plus, BarChart3, Eye, Copy, Trash2, ExternalLink, Calendar, TrendingUp } from "lucide-react";
+import { LinkIcon, Plus, BarChart3, Eye, Copy, Trash2, ExternalLink, Calendar, TrendingUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { getShortLinks, deleteShortLink } from "@/lib/supabase";
 
 interface PopupLink {
   id: string;
   name: string;
-  shortUrl: string;
-  originalUrl: string;
+  slug: string;
+  target_url: string;
   clicks: number;
-  createdAt: string;
+  created_at: string;
+  user_id: string;
+  popup_id: string | null;
+  popups: {
+    id: string;
+    name: string;
+    content: any;
+  } | null;
 }
 
 const Dashboard = () => {
-  const [user, setUser] = useState<any>(null);
   const [links, setLinks] = useState<PopupLink[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      navigate("/login");
-      return;
-    }
-    setUser(JSON.parse(userData));
+    const fetchLinks = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const shortLinks = await getShortLinks(user.id);
+        setLinks(shortLinks);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching links:', err);
+        setError(err.message || 'Failed to load your links');
+        toast({
+          title: 'Error',
+          description: 'Failed to load your links',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    const userLinks = localStorage.getItem("userLinks");
-    if (userLinks) {
-      setLinks(JSON.parse(userLinks));
-    }
-  }, [navigate]);
+    fetchLinks();
+  }, [user, toast]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 
@@ -48,14 +70,23 @@ const Dashboard = () => {
     });
   };
 
-  const deleteLink = (id: string) => {
-    const updatedLinks = links.filter(link => link.id !== id);
-    setLinks(updatedLinks);
-    localStorage.setItem("userLinks", JSON.stringify(updatedLinks));
-    toast({
-      title: "Link deleted",
-      description: "Your popup link has been deleted",
-    });
+  const deleteLink = async (id: string) => {
+    try {
+      await deleteShortLink(id);
+      const updatedLinks = links.filter(link => link.id !== id);
+      setLinks(updatedLinks);
+      toast({
+        title: "Link deleted",
+        description: "Your link has been deleted",
+      });
+    } catch (err: any) {
+      console.error('Error deleting link:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete the link",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!user) return null;
@@ -99,128 +130,181 @@ const Dashboard = () => {
             </Button>
           </Link>
         </div>
+        
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Links</CardTitle>
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <LinkIcon className="h-4 w-4 text-purple-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 mb-1">{links.length}</div>
-              <p className="text-xs text-green-600 font-medium">Active campaigns</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Clicks</CardTitle>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Eye className="h-4 w-4 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 mb-1">{totalClicks}</div>
-              <p className="text-xs text-blue-600 font-medium">All time clicks</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Avg. Clicks</CardTitle>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 mb-1">{avgCtr}</div>
-              <p className="text-xs text-green-600 font-medium">Per link</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Links Table */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="bg-gray-50/50 border-b border-gray-200">
-            <CardTitle className="text-xl text-gray-900">Your Popup Links</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {links.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="p-4 bg-gray-100 rounded-full w-fit mx-auto mb-4">
-                  <LinkIcon className="h-12 w-12 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No links created yet</h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Create your first popup link to start monetizing your traffic and tracking performance
-                </p>
-                <Link to="/create-popup">
-                  <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium px-6">
-                    Create Your First Link
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {links.map((link, index) => (
-                  <div key={link.id} className="p-6 hover:bg-gray-50/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-gray-900 truncate">{link.name}</h3>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Active
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-600">
-                          <div className="flex items-center space-x-2">
-                            <LinkIcon className="h-3 w-3" />
-                            <span className="font-mono">{link.shortUrl}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <ExternalLink className="h-3 w-3" />
-                            <span className="truncate max-w-xs">{link.originalUrl}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(link.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4 ml-4">
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-gray-900">{link.clicks}</div>
-                          <div className="text-xs text-gray-500">clicks</div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => copyToClipboard(link.shortUrl)}
-                            className="hover:bg-purple-50 hover:border-purple-200"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deleteLink(link.id)}
-                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+            <span className="ml-2 text-lg text-gray-600">Loading your links...</span>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-8">
+            <p className="font-medium">Failed to load your links</p>
+            <p className="text-sm">{error}</p>
+            <Button 
+              variant="outline" 
+              className="mt-2" 
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-600">Total Links</CardTitle>
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <LinkIcon className="h-4 w-4 text-purple-600" />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{links.length}</div>
+                  <p className="text-xs text-green-600 font-medium">Active campaigns</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-600">Total Clicks</CardTitle>
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Eye className="h-4 w-4 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{totalClicks}</div>
+                  <p className="text-xs text-blue-600 font-medium">All time clicks</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-600">Avg. Clicks</CardTitle>
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{avgCtr}</div>
+                  <p className="text-xs text-green-600 font-medium">Per link</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Links Table */}
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <CardHeader className="bg-gray-50 border-b border-gray-100">
+                <CardTitle className="text-lg font-semibold text-gray-900">Your Links</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-6 py-3 text-left">Name</th>
+                        <th className="px-6 py-3 text-left">Short URL</th>
+                        <th className="px-6 py-3 text-left">Original URL</th>
+                        <th className="px-6 py-3 text-center">Clicks</th>
+                        <th className="px-6 py-3 text-center">Created</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {links.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                            <div className="flex flex-col items-center justify-center">
+                              <LinkIcon className="h-12 w-12 text-gray-300 mb-4" />
+                              <h3 className="text-lg font-medium text-gray-900 mb-1">No links yet</h3>
+                              <p className="text-gray-500 mb-4">Create your first popup link to start monetizing</p>
+                              <Link to="/create-popup">
+                                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium px-6 shadow-lg hover:shadow-xl transition-all duration-200">
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Create New Link
+                                </Button>
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        links.map(link => (
+                          <tr key={link.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-bold">
+                                  {(link.name || link.slug).charAt(0).toUpperCase()}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{link.name || link.slug}</div>
+                                  <div className="text-sm text-gray-500">ID: {link.id.slice(0, 8)}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <span className="font-mono">{`${window.location.origin}/r/${link.slug}`}</span>
+                                <button 
+                                  onClick={() => copyToClipboard(`${window.location.origin}/r/${link.slug}`)}
+                                  className="ml-2 text-gray-400 hover:text-gray-600"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="max-w-xs truncate">
+                                <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
+                                  {link.target_url}
+                                  <ExternalLink className="h-3 w-3 ml-1" />
+                                </a>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <div className="text-sm font-medium text-gray-900">{link.clicks || 0}</div>
+                              <div className="text-xs text-gray-500 flex items-center justify-center">
+                                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                                <span>Active</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <div className="text-sm text-gray-900">{new Date(link.created_at).toLocaleDateString()}</div>
+                              <div className="text-xs text-gray-500 flex items-center justify-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                <span>{new Date(link.created_at).toLocaleTimeString()}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">
+                                  <BarChart3 className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => navigate(`/edit-popup/${link.popup_id}`)}
+                                  className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
+                                  title="Edit popup link"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => deleteLink(link.id)}
+                                  className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
