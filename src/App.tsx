@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import CreatePopup from "./pages/CreatePopup";
 import EditPopup from "./pages/EditPopup";
 import RedirectPage from "./pages/RedirectPage";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />

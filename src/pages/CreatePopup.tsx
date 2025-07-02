@@ -222,6 +222,11 @@ const CreatePopup = () => {
     logoText,
     logoUrl,
     imageUrl,
+    // Styling options
+    backgroundColor,
+    textColor,
+    popupWidth,
+    popupHeight,
     // Make sure template is set correctly based on popup type
     template: popupType === 'image' ? 'image' : 
               ctaProfileImageUrl ? 'profile' : 'standard',

@@ -18,6 +18,10 @@ interface PopupPreviewProps {
     logoUrl: string;
     imageUrl?: string;
     template?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    popupWidth?: string;
+    popupHeight?: string;
   };
 }
 
@@ -55,13 +59,33 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
 
       {/* Popup Overlay */}
       <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <Card className={`absolute max-w-sm w-full mx-4 ${getPlacementStyles()} animate-fade-in`}>
+        <Card 
+          className={`absolute max-w-sm mx-4 ${getPlacementStyles()} animate-fade-in`}
+          style={{
+            width: data.popupWidth || 'auto',
+            height: data.popupHeight || 'auto',
+            backgroundColor: data.backgroundColor || '#ffffff',
+            color: data.textColor || '#000000'
+          }}
+        >
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
-                {data.logoText && (
-                  <div className="text-sm font-medium text-purple-600 mb-2">
-                    {data.logoText}
+                {/* Logo section with text or image */}
+                {(data.logoText || data.logoUrl) && (
+                  <div className="flex items-center mb-2">
+                    {data.logoUrl && (
+                      <img 
+                        src={data.logoUrl} 
+                        alt="Logo" 
+                        className="h-6 mr-2 object-contain"
+                      />
+                    )}
+                    {data.logoText && (
+                      <div className="text-sm font-medium" style={{ color: data.textColor || '#000000' }}>
+                        {data.logoText}
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -77,7 +101,7 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
                     </div>
                     <div>
                       {data.ctaName && (
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-semibold" style={{ color: data.textColor || '#000000' }}>
                           {data.ctaName}
                         </h3>
                       )}
@@ -100,13 +124,13 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
                 
                 {/* Standard template or when no profile image is set */}
                 {(data.template !== 'profile' || !data.ctaProfileImageUrl) && data.ctaName && data.template !== 'image' && (
-                  <h3 className="font-semibold text-gray-900 mb-2">
+                  <h3 className="font-semibold mb-2" style={{ color: data.textColor || '#000000' }}>
                     {data.ctaName}
                   </h3>
                 )}
                 
                 {data.ctaDescription && (
-                  <p className="text-sm text-gray-600 mb-4 break-words overflow-hidden">
+                  <p className="text-sm mb-4 break-words overflow-hidden" style={{ color: data.textColor || '#000000' }}>
                     {data.ctaDescription}
                   </p>
                 )}
