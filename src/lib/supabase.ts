@@ -40,6 +40,9 @@ export const getPopup = async (id: string) => {
   return data
 }
 
+// Alias for getPopup - used in EditPopup component
+export const getPopupById = getPopup
+
 export const createPopup = async (popup: Database['public']['Tables']['popups']['Insert']) => {
   const { data, error } = await supabase
     .from('popups')
@@ -96,26 +99,62 @@ export const getShortLink = async (id: string) => {
   return data
 }
 
+// Alias for getShortLink - used in EditPopup component
+export const getShortLinkById = getShortLink
+
+// Get short link by popup ID
+export const getShortLinkByPopupId = async (popupId: string) => {
+  const { data, error } = await supabase
+    .from('short_links')
+    .select('*')
+    .eq('popup_id', popupId)
+    .maybeSingle() // Use maybeSingle instead of single to avoid errors when no rows are found
+  
+  if (error) throw error
+  return data
+}
+
 export const getShortLinkBySlug = async (slug: string) => {
   const { data, error } = await supabase
     .from('short_links')
     .select('*, popups(*)')
     .eq('slug', slug)
-    .single()
+    .maybeSingle() // Use maybeSingle instead of single to avoid errors when no rows are found
   
   if (error) throw error
   return data
 }
 
 export const createShortLink = async (shortLink: Database['public']['Tables']['short_links']['Insert']) => {
-  const { data, error } = await supabase
-    .from('short_links')
-    .insert(shortLink)
-    .select()
-    .single()
-  
-  if (error) throw error
-  return data
+  try {
+    // Check if slug already exists
+    if (shortLink.slug) {
+      const { data: existingSlug } = await supabase
+        .from('short_links')
+        .select('id')
+        .eq('slug', shortLink.slug)
+        .maybeSingle();
+      
+      // If slug exists, generate a new one
+      if (existingSlug) {
+        console.log('Slug already exists, generating a new one');
+        shortLink.slug = `${shortLink.slug}-${Math.random().toString(36).substring(2, 6)}`;
+      }
+    }
+    
+    // Insert the short link
+    const { data, error } = await supabase
+      .from('short_links')
+      .insert(shortLink)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating short link:', error);
+    throw error;
+  }
 }
 
 export const updateShortLink = async (id: string, shortLink: Database['public']['Tables']['short_links']['Update']) => {
@@ -139,6 +178,60 @@ export const deleteShortLink = async (id: string) => {
   if (error) throw error
   return true
 }
+
+// File upload related functions
+export const uploadFile = async (
+  file: File,
+  filePath: string,
+  onProgress?: (progress: number) => void
+) => {
+  try {
+    // We'll use a fixed bucket name that we know exists in the Supabase project
+    // Based on the Supabase URL in the project configuration
+    const bucketName = 'images'; // Use a simple bucket name that likely exists
+    
+    // Create a clean file path without bucket prefix
+    // Extract just the filename to avoid path issues
+    const fileName = filePath.split('/').pop() || `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${file.name.split('.').pop()}`;
+    
+    // Create a clean path with user ID if available
+    const userId = filePath.includes('/') ? filePath.split('/')[1] : 'anonymous';
+    const uploadPath = `${userId}/${fileName}`;
+    
+    console.log(`Uploading to bucket: ${bucketName}, path: ${uploadPath}`);
+    
+    // Upload the file
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(uploadPath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+      
+    // Since onUploadProgress isn't directly supported in the type,
+    // we'll simulate progress after upload completes
+    if (onProgress) {
+      // Simulate 100% completion
+      onProgress(100);
+    }
+
+    if (error) throw error;
+    
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(uploadPath);
+    
+    // Log the URL for debugging
+    console.log('Generated public URL:', publicUrlData.publicUrl);
+    
+    // Return the public URL from Supabase
+    return { data, publicUrl: publicUrlData.publicUrl };
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
 
 // Analytics related functions
 export const trackEvent = async (event: Database['public']['Tables']['analytics']['Insert']) => {

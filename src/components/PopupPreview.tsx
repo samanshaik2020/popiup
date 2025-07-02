@@ -11,10 +11,13 @@ interface PopupPreviewProps {
     ctaName: string;
     ctaDescription: string;
     ctaProfileUrl: string;
+    ctaProfileImageUrl?: string;
     buttonText: string;
     buttonUrl: string;
     logoText: string;
     logoUrl: string;
+    imageUrl?: string;
+    template?: string;
   };
 }
 
@@ -23,6 +26,8 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
     switch (data.placement) {
       case "top":
         return "top-4 left-1/2 transform -translate-x-1/2";
+      case "bottom":
+        return "bottom-4 left-1/2 transform -translate-x-1/2";
       case "left":
         return "top-1/2 left-4 transform -translate-y-1/2";
       case "right":
@@ -35,7 +40,7 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
   };
 
   return (
-    <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ height: "600px" }}>
+    <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ height: "600px", position: "sticky", top: "1rem" }}>
       {/* Simulated webpage background */}
       <div className="p-6 bg-white h-full">
         <div className="space-y-4">
@@ -59,13 +64,49 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
                     {data.logoText}
                   </div>
                 )}
-                {data.ctaName && (
+                
+                {/* Profile template with image */}
+                {data.template === 'profile' && data.ctaProfileImageUrl && (
+                  <div className="flex items-center mb-3">
+                    <div className="h-12 w-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                      <img 
+                        src={data.ctaProfileImageUrl} 
+                        alt="Profile" 
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      {data.ctaName && (
+                        <h3 className="font-semibold text-gray-900">
+                          {data.ctaName}
+                        </h3>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Image template */}
+                {data.template === 'image' && data.imageUrl && (
+                  <div className="mb-3">
+                    <div className="rounded-lg overflow-hidden">
+                      <img 
+                        src={data.imageUrl} 
+                        alt="Popup Image" 
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Standard template or when no profile image is set */}
+                {(data.template !== 'profile' || !data.ctaProfileImageUrl) && data.ctaName && data.template !== 'image' && (
                   <h3 className="font-semibold text-gray-900 mb-2">
                     {data.ctaName}
                   </h3>
                 )}
+                
                 {data.ctaDescription && (
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 mb-4 break-words overflow-hidden">
                     {data.ctaDescription}
                   </p>
                 )}
@@ -82,7 +123,7 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
             )}
             
             <div className="text-xs text-gray-500 mt-3 text-center">
-              Will show after {data.delay} seconds
+              Will show after {parseInt(data.delay.toString()) || 0} seconds
             </div>
           </CardContent>
         </Card>

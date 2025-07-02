@@ -68,45 +68,55 @@ ALTER TABLE short_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
 
 -- Policies for popups table
+DROP POLICY IF EXISTS "Users can view their own popups" ON popups;
 CREATE POLICY "Users can view their own popups" 
     ON popups FOR SELECT
     USING (auth.uid() = user_id);
     
+DROP POLICY IF EXISTS "Users can insert their own popups" ON popups;
 CREATE POLICY "Users can insert their own popups" 
     ON popups FOR INSERT
     WITH CHECK (auth.uid() = user_id);
     
+DROP POLICY IF EXISTS "Users can update their own popups" ON popups;
 CREATE POLICY "Users can update their own popups" 
     ON popups FOR UPDATE
     USING (auth.uid() = user_id);
     
+DROP POLICY IF EXISTS "Users can delete their own popups" ON popups;
 CREATE POLICY "Users can delete their own popups" 
     ON popups FOR DELETE
     USING (auth.uid() = user_id);
 
 -- Policies for short_links table
+DROP POLICY IF EXISTS "Users can view their own short links" ON short_links;
 CREATE POLICY "Users can view their own short links" 
     ON short_links FOR SELECT
     USING (auth.uid() = user_id);
     
+DROP POLICY IF EXISTS "Users can insert their own short links" ON short_links;
 CREATE POLICY "Users can insert their own short links" 
     ON short_links FOR INSERT
     WITH CHECK (auth.uid() = user_id);
     
+DROP POLICY IF EXISTS "Users can update their own short links" ON short_links;
 CREATE POLICY "Users can update their own short links" 
     ON short_links FOR UPDATE
     USING (auth.uid() = user_id);
     
+DROP POLICY IF EXISTS "Users can delete their own short links" ON short_links;
 CREATE POLICY "Users can delete their own short links" 
     ON short_links FOR DELETE
     USING (auth.uid() = user_id);
 
 -- Public can view short_links when looking up by slug (needed for redirects)
+DROP POLICY IF EXISTS "Anyone can view short links by slug" ON short_links;
 CREATE POLICY "Anyone can view short links by slug" 
     ON short_links FOR SELECT
     USING (true);
 
 -- Analytics policies
+DROP POLICY IF EXISTS "Users can view their own analytics" ON analytics;
 CREATE POLICY "Users can view their own analytics" 
     ON analytics FOR SELECT
     USING (EXISTS (
@@ -115,6 +125,7 @@ CREATE POLICY "Users can view their own analytics"
         AND short_links.user_id = auth.uid()
     ));
     
+DROP POLICY IF EXISTS "Public can insert analytics" ON analytics;
 CREATE POLICY "Public can insert analytics" 
     ON analytics FOR INSERT
     WITH CHECK (true);
@@ -128,10 +139,84 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_popups_timestamp ON popups;
 CREATE TRIGGER update_popups_timestamp
 BEFORE UPDATE ON popups
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS update_short_links_timestamp ON short_links;
 CREATE TRIGGER update_short_links_timestamp
 BEFORE UPDATE ON short_links
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+-- Storage bucket configurations for image uploads
+
+-- Create the images bucket for all image uploads
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('images', 'images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create the popup bucket for popup-specific uploads
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('popup', 'popup', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Set up security policies for the images bucket
+DROP POLICY IF EXISTS "Images are publicly accessible" ON storage.objects;
+CREATE POLICY "Images are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'images');
+
+DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
+CREATE POLICY "Authenticated users can upload images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'images' AND
+  auth.role() = 'authenticated'
+);
+
+DROP POLICY IF EXISTS "Users can update their own images" ON storage.objects;
+CREATE POLICY "Users can update their own images"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'images' AND
+  auth.uid() = owner
+);
+
+DROP POLICY IF EXISTS "Users can delete their own images" ON storage.objects;
+CREATE POLICY "Users can delete their own images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'images' AND
+  auth.uid() = owner
+);
+
+-- Set up security policies for the popup bucket
+DROP POLICY IF EXISTS "Popup images are publicly accessible" ON storage.objects;
+CREATE POLICY "Popup images are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'popup');
+
+DROP POLICY IF EXISTS "Authenticated users can upload popup images" ON storage.objects;
+CREATE POLICY "Authenticated users can upload popup images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'popup' AND
+  auth.role() = 'authenticated'
+);
+
+DROP POLICY IF EXISTS "Users can update their own popup images" ON storage.objects;
+CREATE POLICY "Users can update their own popup images"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'popup' AND
+  auth.uid() = owner
+);
+
+DROP POLICY IF EXISTS "Users can delete their own popup images" ON storage.objects;
+CREATE POLICY "Users can delete their own popup images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'popup' AND
+  auth.uid() = owner
+);

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
-import { LinkIcon, ArrowLeft, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { LinkIcon, ArrowLeft, Copy, ExternalLink, Loader2, UploadCloud, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PopupPreview } from "@/components/PopupPreview";
 import { RecentLinks } from "@/components/RecentLinks";
-import { createPopup, createShortLink } from "@/lib/supabase";
+import { createPopup, createShortLink, uploadFile } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
 const CreatePopup = () => {
@@ -21,13 +21,34 @@ const CreatePopup = () => {
   const [popupType, setPopupType] = useState("text");
   const [placement, setPlacement] = useState("top");
   const [delay, setDelay] = useState("3");
+  const [template, setTemplate] = useState("standard");
   const [ctaName, setCtaName] = useState("");
   const [ctaDescription, setCtaDescription] = useState("");
   const [ctaProfileUrl, setCtaProfileUrl] = useState("");
+  const [ctaProfileImage, setCtaProfileImage] = useState<File | null>(null);
+  const [ctaProfileImageUrl, setCtaProfileImageUrl] = useState("");
   const [buttonText, setButtonText] = useState("Learn More");
   const [buttonUrl, setButtonUrl] = useState("");  // No default URL
   const [logoText, setLogoText] = useState("");
   const [logoUrl, setLogoUrl] = useState("");  // No default URL
+  
+  // Image and Video States
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  
+  // Custom Styling States
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [textColor, setTextColor] = useState("#000000");
+  const [popupWidth, setPopupWidth] = useState("400px");
+  const [popupHeight, setPopupHeight] = useState("auto");
+  
+  // File upload states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Track submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,6 +61,61 @@ const CreatePopup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Handle file upload
+  const handleFileUpload = async (file: File, fileType: 'logo' | 'image' | 'profile' = 'logo') => {
+    if (!file || !user) return;
+    
+    try {
+      setIsUploading(true);
+      setUploadProgress(10); // Start progress
+      
+      // Create a unique file name using timestamp and random string
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+      const filePath = `uploads/${user.id}/${fileName}`;
+      
+      // Upload the file to Supabase Storage
+      const result = await uploadFile(file, filePath, (progress) => {
+        setUploadProgress(progress);
+      });
+      
+      // Use the public URL from the result
+      const url = result.publicUrl;
+      
+      // Set the URL based on file type
+      switch (fileType) {
+        case 'logo':
+          setLogoUrl(url);
+          setUploadedFile(file);
+          break;
+        case 'image':
+          setImageUrl(url);
+          setImageFile(file);
+          break;
+        case 'profile':
+          setCtaProfileImageUrl(url);
+          setCtaProfileImage(file);
+          break;
+      }
+      
+      toast({
+        title: "File uploaded",
+        description: "Your file has been uploaded successfully",
+      });
+      
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload file",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,18 +135,29 @@ const CreatePopup = () => {
       // Generate a random slug
       const slug = Math.random().toString(36).substring(2, 10);
       
-      // Create popup content as JSON string
+      // Create popup content as JSON string - using field names that match RedirectPage expectations
       const popupContent = JSON.stringify({
         type: popupType,
         placement,
-        delay: parseInt(delay),
-        ctaName,
-        ctaDescription,
-        ctaProfileUrl,
-        buttonText,
-        buttonUrl,
-        logoText,
-        logoUrl,
+        delay_seconds: parseInt(delay),
+        profile_name: ctaName,
+        description: ctaDescription,
+        profile_url: ctaProfileUrl,
+        profile_image_url: ctaProfileImageUrl, // Add the profile image URL
+        button_text: buttonText,
+        button_link: buttonUrl,
+        logo_text: logoText,
+        logo_url: logoUrl,
+        image_url: imageUrl, // Add the main image URL
+        template: popupType === 'image' ? 'image' : ctaProfileImageUrl ? 'profile' : 'standard', // Set template based on content
+      });
+      
+      // Debug the content being saved
+      console.log('Saving popup with content:', {
+        imageUrl,
+        ctaProfileImageUrl,
+        popupType,
+        template: popupType === 'image' ? 'image' : ctaProfileImageUrl ? 'profile' : 'standard'
       });
       
       // First create the popup
@@ -121,18 +208,27 @@ const CreatePopup = () => {
     }
   };
 
+  // Prepare preview data with correct template handling
   const previewData = {
     type: popupType,
     placement,
-    delay: parseInt(delay),
+    delay: parseInt(delay) || 0,
     ctaName,
     ctaDescription,
     ctaProfileUrl,
+    ctaProfileImageUrl,
     buttonText,
     buttonUrl,
     logoText,
     logoUrl,
+    imageUrl,
+    // Make sure template is set correctly based on popup type
+    template: popupType === 'image' ? 'image' : 
+              ctaProfileImageUrl ? 'profile' : 'standard',
   };
+  
+  // Debug the preview data
+  console.log('Preview data:', previewData);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,37 +254,68 @@ const CreatePopup = () => {
               <CardHeader>
                 <CardTitle>Popup Link Settings</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[80vh] overflow-y-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Basic Settings */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="originalUrl">Destination URL</Label>
-                      <Input
-                        id="originalUrl"
-                        type="url"
-                        placeholder="https://example.com"
-                        value={originalUrl}
-                        onChange={(e) => setOriginalUrl(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="adName">Ad Name</Label>
-                      <Input
-                        id="adName"
-                        placeholder="My Campaign"
-                        value={adName}
-                        onChange={(e) => setAdName(e.target.value)}
-                        required
-                      />
+                  <div>
+                    <Label htmlFor="adName">Popup Name</Label>
+                    <Input
+                      id="adName"
+                      placeholder="Name your popup"
+                      value={adName}
+                      onChange={(e) => setAdName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="originalUrl">Destination URL</Label>
+                    <Input
+                      id="originalUrl"
+                      placeholder="https://yourwebsite.com"
+                      type="url"
+                      value={originalUrl}
+                      onChange={(e) => setOriginalUrl(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Popup Type */}
+                  {/* Template Selection */}
+                  <div>
+                    <Label>Choose a Template</Label>
+                    <div className="grid grid-cols-3 gap-4 mt-2">
+                      <div
+                        className={`border rounded-lg p-4 cursor-pointer ${template === "standard" ? "border-purple-500 bg-purple-50" : ""}`}
+                        onClick={() => setTemplate("standard")}
+                      >
+                        <div className="h-20 bg-gray-100 rounded mb-2 flex items-center justify-center text-xs text-gray-500">Standard</div>
+                        <p className="text-xs font-medium">Basic popup with text and CTA</p>
+                      </div>
+                      <div
+                        className={`border rounded-lg p-4 cursor-pointer ${template === "newsletter" ? "border-purple-500 bg-purple-50" : ""}`}
+                        onClick={() => setTemplate("newsletter")}
+                      >
+                        <div className="h-20 bg-gray-100 rounded mb-2 flex items-center justify-center text-xs text-gray-500">Newsletter</div>
+                        <p className="text-xs font-medium">Email signup form</p>
+                      </div>
+                      <div
+                        className={`border rounded-lg p-4 cursor-pointer ${template === "promotion" ? "border-purple-500 bg-purple-50" : ""}`}
+                        onClick={() => setTemplate("promotion")}
+                      >
+                        <div className="h-20 bg-gray-100 rounded mb-2 flex items-center justify-center text-xs text-gray-500">Promotion</div>
+                        <p className="text-xs font-medium">Sale or offer popup</p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Popup Type */}
                   <div>
                     <Label>Popup Type</Label>
-                    <RadioGroup value={popupType} onValueChange={setPopupType} className="mt-2">
+                    <RadioGroup
+                      value={popupType}
+                      onValueChange={setPopupType}
+                      className="flex flex-col space-y-2 mt-2"
+                    >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="text" id="text" />
                         <Label htmlFor="text">Text</Label>
@@ -202,6 +329,94 @@ const CreatePopup = () => {
                         <Label htmlFor="video">Video</Label>
                       </div>
                     </RadioGroup>
+                    
+                    {popupType === "image" && (
+                      <div className="mt-4">
+                        <Label htmlFor="imageUpload">Upload Image</Label>
+                        <div className="flex items-center gap-4 mt-1">
+                          <Input
+                            id="imageUpload"
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setImageFile(file);
+                                try {
+                                  setIsUploading(true);
+                                  const filePath = `${user?.id}/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${file.name.split('.').pop()}`;
+                                  const result = await uploadFile(file, filePath, (progress) => setUploadProgress(progress));
+                                  setImageUrl(result.publicUrl);
+                                  toast({
+                                    title: "Upload complete",
+                                    description: "Image has been uploaded"
+                                  });
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Upload failed",
+                                    description: error.message,
+                                    variant: "destructive"
+                                  });
+                                } finally {
+                                  setIsUploading(false);
+                                  setUploadProgress(0);
+                                }
+                              }
+                            }}
+                          />
+                          {imageUrl && (
+                            <div className="relative h-24 w-40 overflow-hidden border rounded">
+                              <img src={imageUrl} alt="Popup content" className="h-full w-full object-cover" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {popupType === "video" && (
+                      <div className="mt-4">
+                        <Label htmlFor="videoUpload">Upload Video</Label>
+                        <div className="flex items-center gap-4 mt-1">
+                          <Input
+                            id="videoUpload"
+                            type="file"
+                            accept="video/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setVideoFile(file);
+                                try {
+                                  setIsUploading(true);
+                                  const filePath = `popup-videos/${user?.id}/${Date.now()}_${file.name}`;
+                                  const result = await uploadFile(file, filePath, (progress) => setUploadProgress(progress));
+                                  setVideoUrl(result.publicUrl);
+                                  toast({
+                                    title: "Upload complete",
+                                    description: "Video has been uploaded"
+                                  });
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Upload failed",
+                                    description: error.message,
+                                    variant: "destructive"
+                                  });
+                                } finally {
+                                  setIsUploading(false);
+                                  setUploadProgress(0);
+                                }
+                              }
+                            }}
+                          />
+                          {videoUrl && (
+                            <div className="relative h-24 w-40 overflow-hidden border rounded">
+                              <video src={videoUrl} controls className="h-full w-full object-cover">
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Placement & Timing */}
@@ -232,41 +447,61 @@ const CreatePopup = () => {
                           <SelectItem value="3">3</SelectItem>
                           <SelectItem value="5">5</SelectItem>
                           <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="15">15</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-
-                  {/* CTA Settings */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium">CTA Settings</h3>
-                    <div>
-                      <Label htmlFor="ctaName">Name</Label>
+                  
+                  <div>
+                    <Label htmlFor="ctaName">Name</Label>
+                    <Input
+                      id="ctaName"
+                      placeholder="Your Name"
+                      value={ctaName}
+                      onChange={(e) => setCtaName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ctaDescription">Description</Label>
+                    <Textarea
+                      id="ctaDescription"
+                      placeholder="Brief description of your offer..."
+                      value={ctaDescription}
+                      onChange={(e) => setCtaDescription(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ctaProfileUrl">Profile URL</Label>
+                    <Input
+                      id="ctaProfileUrl"
+                      type="url"
+                      placeholder="https://yourprofile.com"
+                      value={ctaProfileUrl}
+                      onChange={(e) => setCtaProfileUrl(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ctaProfileImage">Profile Image</Label>
+                    <div className="flex items-center gap-4 mt-1">
                       <Input
-                        id="ctaName"
-                        placeholder="Your Name"
-                        value={ctaName}
-                        onChange={(e) => setCtaName(e.target.value)}
+                        id="ctaProfileImage"
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setCtaProfileImage(file);
+                            await handleFileUpload(file, 'profile');
+                          }
+                        }}
                       />
-                    </div>
-                    <div>
-                      <Label htmlFor="ctaDescription">Description</Label>
-                      <Textarea
-                        id="ctaDescription"
-                        placeholder="Brief description of your offer..."
-                        value={ctaDescription}
-                        onChange={(e) => setCtaDescription(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="ctaProfileUrl">Profile URL</Label>
-                      <Input
-                        id="ctaProfileUrl"
-                        type="url"
-                        placeholder="https://yourprofile.com"
-                        value={ctaProfileUrl}
-                        onChange={(e) => setCtaProfileUrl(e.target.value)}
-                      />
+                      {ctaProfileImageUrl && (
+                        <div className="relative h-12 w-12 rounded-full overflow-hidden border">
+                          <img src={ctaProfileImageUrl} alt="Profile" className="h-full w-full object-cover" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -322,6 +557,79 @@ const CreatePopup = () => {
                     </div>
                   </div>
 
+                  {/* Styling Options */}
+                  <div>
+                    <h3 className="font-medium">Styling Options</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <Label htmlFor="backgroundColor">Background Color</Label>
+                        <div className="flex mt-1">
+                          <input
+                            type="color"
+                            id="backgroundColor"
+                            value={backgroundColor}
+                            onChange={(e) => setBackgroundColor(e.target.value)}
+                            className="h-9 w-9 border rounded"
+                          />
+                          <Input
+                            type="text"
+                            value={backgroundColor}
+                            onChange={(e) => setBackgroundColor(e.target.value)}
+                            className="flex-1 ml-2"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="textColor">Text Color</Label>
+                        <div className="flex mt-1">
+                          <input
+                            type="color"
+                            id="textColor"
+                            value={textColor}
+                            onChange={(e) => setTextColor(e.target.value)}
+                            className="h-9 w-9 border rounded"
+                          />
+                          <Input
+                            type="text"
+                            value={textColor}
+                            onChange={(e) => setTextColor(e.target.value)}
+                            className="flex-1 ml-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <Label htmlFor="popupWidth">Width</Label>
+                        <div className="flex items-center mt-1">
+                          <Input
+                            type="text"
+                            id="popupWidth"
+                            value={popupWidth}
+                            onChange={(e) => setPopupWidth(e.target.value)}
+                          />
+                          <span className="ml-2 text-sm text-gray-500">px/%</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="popupHeight">Height</Label>
+                        <div className="flex items-center mt-1">
+                          <Input
+                            type="text"
+                            id="popupHeight"
+                            value={popupHeight}
+                            onChange={(e) => setPopupHeight(e.target.value)}
+                          />
+                          <span className="ml-2 text-sm text-gray-500">px/%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button 
                     type="submit" 
                     className="w-full bg-purple-600 hover:bg-purple-700"
@@ -336,7 +644,7 @@ const CreatePopup = () => {
                       "Create Popup Link"
                     )}
                   </Button>
-                  
+
                   {/* Generated Link Section - Always visible once generated */}
                   {generatedLink && (
                     <div className="mt-6 p-4 border border-green-200 bg-green-50 rounded-lg">

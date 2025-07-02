@@ -10,13 +10,16 @@ import { getShortLinks, deleteShortLink } from "@/lib/supabase";
 
 interface PopupLink {
   id: string;
-  name: string;
-  slug: string;
-  target_url: string;
-  clicks: number;
-  created_at: string;
   user_id: string;
   popup_id: string | null;
+  slug: string;
+  destination_url: string; // Changed from target_url to match database schema
+  title: string; // Changed from name to match database schema
+  description: string;
+  active: boolean;
+  clicks?: number; // Making this optional as it might be calculated
+  created_at: string;
+  updated_at: string;
   popups: {
     id: string;
     name: string;
@@ -91,7 +94,7 @@ const Dashboard = () => {
 
   if (!user) return null;
 
-  const totalClicks = links.reduce((sum, link) => sum + link.clicks, 0);
+  const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
   const avgCtr = links.length > 0 ? (totalClicks / links.length).toFixed(1) : 0;
 
   return (
@@ -234,10 +237,10 @@ const Dashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-bold">
-                                  {(link.name || link.slug).charAt(0).toUpperCase()}
+                                  {(link.title || link.slug).charAt(0).toUpperCase()}
                                 </div>
                                 <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">{link.name || link.slug}</div>
+                                  <div className="text-sm font-medium text-gray-900">{link.title || link.slug}</div>
                                   <div className="text-sm text-gray-500">ID: {link.id.slice(0, 8)}</div>
                                 </div>
                               </div>
@@ -255,8 +258,8 @@ const Dashboard = () => {
                             </td>
                             <td className="px-6 py-4">
                               <div className="max-w-xs truncate">
-                                <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
-                                  {link.target_url}
+                                <a href={link.destination_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
+                                  {link.destination_url}
                                   <ExternalLink className="h-3 w-3 ml-1" />
                                 </a>
                               </div>

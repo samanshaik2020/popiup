@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import CreatePopup from "./pages/CreatePopup";
+import EditPopup from "./pages/EditPopup";
 import RedirectPage from "./pages/RedirectPage";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,11 @@ const App = () => (
             <Route path="/create-popup" element={
               <ProtectedRoute>
                 <CreatePopup />
+              </ProtectedRoute>
+            } />
+            <Route path="/edit-popup/:id" element={
+              <ProtectedRoute>
+                <EditPopup />
               </ProtectedRoute>
             } />
             <Route path="/r/:slug" element={<RedirectPage />} />
