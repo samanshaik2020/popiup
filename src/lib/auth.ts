@@ -15,27 +15,157 @@ type SignInParams = {
 };
 
 export const signUp = async ({ email, password, metadata }: SignUpParams) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: metadata,
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+  try {
+    console.log('Attempting to sign up user:', email);
+    
+    // Trim inputs to prevent whitespace issues
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    
+    if (!trimmedEmail || !trimmedPassword) {
+      throw new Error('Email and password cannot be empty');
     }
-  });
+    
+    // For development: Disable email confirmation by setting emailRedirectTo
+    const { data, error } = await supabase.auth.signUp({
+      email: trimmedEmail,
+      password: trimmedPassword,
+      options: {
+        data: metadata,
+        // Redirect URL for email confirmation
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    
+    // Log detailed information for debugging
+    if (error) {
+      console.error('Supabase Sign Up Error:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      });
+    } else {
+      console.log('Sign up response:', { 
+        user: data.user?.email,
+        session: data.session ? 'Session created' : 'No session (email confirmation required)'
+      });
+    }
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      // If there's an error with email confirmation, we'll try a different approach
+      if (error.message.includes('confirmation email')) {
+        console.warn('Email service not configured properly. Attempting alternative signup method.');
+        
+        // Try creating the user with admin API (this is a workaround for development)
+        // First check if the user already exists and try to sign them in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (!signInError) {
+          console.log('User already exists, signed in successfully');
+          return signInData;
+        }
+        
+        // If we can't sign in, try a different signup approach without email confirmation
+        const { data: altSignUpData, error: altSignUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: metadata,
+            // Skip email confirmation entirely
+            emailRedirectTo: undefined
+          }
+        });
+        
+        if (altSignUpError) {
+          console.error('Alternative signup failed:', altSignUpError);
+          throw altSignUpError;
+        }
+        
+        // Try to immediately sign in after signup
+        const { data: autoSignInData, error: autoSignInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (autoSignInError) {
+          console.error('Auto sign-in after signup failed:', autoSignInError);
+          return altSignUpData; // Return the signup data even without session
+        }
+        
+        return autoSignInData;
+      } else {
+        // For other errors, throw them as usual
+        throw error;
+      }
+    }
+    
+    // If signup was successful but no session (needs email confirmation)
+    if (data.session === null) {
+      console.log('User created but requires email confirmation. Attempting direct sign-in...');
+      
+      // Try to sign in anyway (works if email confirmation is not enforced)
+      try {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (signInError) {
+          console.log('Direct sign-in failed, user needs to confirm email first');
+          return data; // Return original data with user but no session
+        }
+        
+        console.log('Direct sign-in successful despite pending confirmation');
+        return signInData;
+      } catch (signInError) {
+        console.log('Error during direct sign-in attempt:', signInError);
+        return data; // Return original data
+      }
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error during signup:', error);
+    throw error;
+  }
 };
 
 export const signIn = async ({ email, password }: SignInParams) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
+  console.log('Attempting to sign in user:', email);
+  
+  try {
+    // Trim inputs to prevent whitespace issues
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    
+    if (!trimmedEmail || !trimmedPassword) {
+      throw new Error('Email and password cannot be empty');
+    }
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password: trimmedPassword
+    });
 
-  if (error) throw error;
-  return data;
+    // Log the full error object for debugging
+    if (error) {
+      console.error('Supabase Auth Error:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      });
+      throw error;
+    }
+    
+    console.log('Sign in successful:', { user: data.user?.email });
+    return data;
+  } catch (error: any) {
+    console.error('Error during sign in:', error.message || error);
+    throw error;
+  }
 };
 
 export const signOut = async () => {

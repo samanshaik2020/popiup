@@ -89,12 +89,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignUp = async (credentials: { email: string; password: string; metadata?: any }) => {
     try {
       const result = await signUp(credentials);
-      if (result.user) {
-        setUser(result.user);
-      }
+      
+      // If we got a session back, the user is already logged in
       if (result.session) {
         setSession(result.session);
+        setUser(result.user);
       }
+      
       return result;
     } catch (error) {
       console.error('Error signing up:', error);

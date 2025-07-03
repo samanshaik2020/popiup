@@ -106,7 +106,7 @@ const Dashboard = () => {
             <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
               <LinkIcon className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Rite.ly</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Popiup</span>
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">

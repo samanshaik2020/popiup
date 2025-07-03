@@ -13,7 +13,7 @@ const Index = () => {
           <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl">
             <LinkIcon className="h-6 w-6 text-white" />
           </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Rite.ly</span>
+          <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Popiup</span>
         </div>
         <div className="flex items-center space-x-4">
           <Link to="/login">
@@ -226,7 +226,7 @@ const Index = () => {
               <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl">
                 <LinkIcon className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">Rite.ly</span>
+              <span className="text-xl font-bold text-white">Popiup</span>
             </div>
             <div className="flex items-center space-x-8 text-sm">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
