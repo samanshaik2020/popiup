@@ -62,9 +62,13 @@ const RedirectPage = () => {
   const [popupContent, setPopupContent] = useState<ParsedPopupContent | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   // New state for iframe loaded status
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  
+  // Debug info - log the slug parameter
+  console.log('RedirectPage: Current slug parameter:', slug);
 
   useEffect(() => {
     // Initial effect to fetch link data
@@ -100,12 +104,44 @@ const RedirectPage = () => {
   // Fetch link data from Supabase based on slug
   async function fetchLinkData() {
       if (!slug) {
+        console.error("No slug parameter provided");
+        setError("No slug parameter provided");
         window.location.href = "/";
         return;
       }
 
       try {
         setIsLoading(true);
+        console.log("Fetching link data for slug:", slug);
+        
+        // First, check if the slug exists in the database
+        const { count, error: countError } = await supabase
+          .from('short_links')
+          .select('*', { count: 'exact', head: true })
+          .eq('slug', slug);
+          
+        if (countError) {
+          console.error("Error checking if slug exists:", countError);
+          setError(`Database error: ${countError.message}`);
+        }
+        
+        console.log(`Found ${count} links with slug '${slug}'`);
+        
+        if (count === 0) {
+          console.error(`No link found with slug: ${slug}`);
+          setError(`Link not found: ${slug}`);
+          toast({
+            title: "Link not found",
+            description: `No link exists with the identifier '${slug}'`,
+            variant: "destructive"
+          });
+          
+          // Wait a moment before redirecting to ensure the toast is visible
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 3000);
+          return;
+        }
         
         // Query short_links table by slug with related popup data
         const { data: linkData, error: linkError } = await supabase
@@ -114,14 +150,35 @@ const RedirectPage = () => {
           .eq('slug', slug)
           .single();
 
-        if (linkError || !linkData) {
-          console.error("Error fetching link:", linkError);
+        if (linkError) {
+          console.error("Error fetching link data:", linkError);
+          setError(`Error fetching link: ${linkError.message}`);
+          toast({
+            title: "Error loading link",
+            description: "There was a problem loading this link.",
+            variant: "destructive"
+          });
+          
+          // Wait a moment before redirecting to ensure the toast is visible
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 3000);
+          return;
+        }
+        
+        if (!linkData) {
+          console.error("No link data returned for slug:", slug);
+          setError(`No data returned for slug: ${slug}`);
           toast({
             title: "Link not found",
             description: "This link doesn't exist or has been removed.",
             variant: "destructive"
           });
-          window.location.href = "/";
+          
+          // Wait a moment before redirecting to ensure the toast is visible
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 3000);
           return;
         }
 
@@ -309,21 +366,42 @@ const RedirectPage = () => {
   // The iframe-based layout with popup overlay
   return (
     <div className="h-screen w-screen overflow-hidden relative">
+      {/* Error display */}
+      {error && (
+        <div className="absolute inset-0 bg-white flex items-center justify-center z-50">
+          <div className="text-center max-w-md p-6 bg-red-50 border border-red-200 rounded-lg">
+            <h1 className="text-2xl font-bold text-red-700 mb-4">Error Loading Link</h1>
+            <p className="text-red-600 mb-6">{error}</p>
+            <div className="text-sm text-gray-600 mb-6">
+              <p>Debug information:</p>
+              <p>Slug: {slug || 'No slug provided'}</p>
+              <p>Path: {window.location.pathname}</p>
+            </div>
+            <Button onClick={() => window.location.href = "/"}>Return to Home</Button>
+          </div>
+        </div>
+      )}
+      
       {/* The iframe containing the destination website */}
-      <iframe 
-        src={linkData.destination_url}
-        className="w-full h-full border-0"
-        onLoad={() => setIframeLoaded(true)}
-        title="Destination website"
-      />
+      {linkData && (
+        <iframe 
+          src={linkData.destination_url}
+          className="w-full h-full border-0"
+          onLoad={() => setIframeLoaded(true)}
+          title="Destination website"
+        />
+      )}
       
       {/* Loading overlay shown while iframe is loading */}
-      {!iframeLoaded && (
+      {isLoading && !error && (
         <div className="absolute inset-0 bg-white flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading Content...</h1>
             <p className="text-gray-600 mb-4">
               Please wait while we load the page
+            </p>
+            <p className="text-gray-500 text-sm">
+              Looking up: {slug}
             </p>
           </div>
         </div>

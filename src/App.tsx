@@ -26,6 +26,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
+            {/* Define all specific routes first */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -45,7 +46,13 @@ const App = () => (
                 <EditPopup />
               </ProtectedRoute>
             } />
+            {/* Support the /r/:slug format for backward compatibility */}
             <Route path="/r/:slug" element={<RedirectPage />} />
+            
+            {/* This is the catch-all slug route for direct domain URLs */}
+            <Route path="/:slug" element={<RedirectPage />} />
+            
+            {/* This is the 404 catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>

@@ -183,11 +183,15 @@ const CreatePopup = () => {
         active: true
       });
       
-      // Set the generated link to display in UI
+      // Function to generate the full short link URL
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://popiup.com' 
+        : window.location.origin;
+        
       setGeneratedLink({
         id: shortLink.id,
         slug: shortLink.slug,
-        fullUrl: `${window.location.origin}/r/${shortLink.slug}`
+        fullUrl: `${baseUrl}/${shortLink.slug}`
       });
       
       toast({
