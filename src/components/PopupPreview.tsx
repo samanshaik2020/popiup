@@ -22,6 +22,12 @@ interface PopupPreviewProps {
     textColor?: string;
     popupWidth?: string;
     popupHeight?: string;
+    // Button customization properties
+    buttonColor?: string;
+    buttonTextColor?: string;
+    buttonRadius?: string;
+    buttonPadding?: string;
+    buttonFontWeight?: string;
   };
 }
 
@@ -38,6 +44,14 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
         return "top-1/2 right-4 transform -translate-y-1/2";
       case "center":
         return "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2";
+      case "top-left":
+        return "top-4 left-4";
+      case "top-right":
+        return "top-4 right-4";
+      case "bottom-left":
+        return "bottom-4 left-4";
+      case "bottom-right":
+        return "bottom-4 right-4";
       default:
         return "top-4 left-1/2 transform -translate-x-1/2";
     }
@@ -141,14 +155,21 @@ export const PopupPreview = ({ data }: PopupPreviewProps) => {
             </div>
             
             {data.buttonText && (
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button 
+                className="w-full" 
+                style={{
+                  backgroundColor: data.buttonColor || '#6D28D9',
+                  color: data.buttonTextColor || '#FFFFFF',
+                  borderRadius: data.buttonRadius || '0.375rem',
+                  padding: data.buttonPadding || '0.5rem 1rem',
+                  fontWeight: data.buttonFontWeight || '500'
+                }}
+              >
                 {data.buttonText}
               </Button>
             )}
             
-            <div className="text-xs text-gray-500 mt-3 text-center">
-              Will show after {parseInt(data.delay.toString()) || 0} seconds
-            </div>
+
           </CardContent>
         </Card>
       </div>

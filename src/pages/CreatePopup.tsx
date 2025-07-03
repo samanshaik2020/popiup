@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
-import { LinkIcon, ArrowLeft, Copy, ExternalLink, Loader2, UploadCloud, Image as ImageIcon } from "lucide-react";
+import { LinkIcon, ArrowLeft, Copy, ExternalLink, Loader2, UploadCloud, Image as ImageIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PopupPreview } from "@/components/PopupPreview";
 import { RecentLinks } from "@/components/RecentLinks";
@@ -35,6 +35,7 @@ const CreatePopup = () => {
   // Image and Video States
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoLinkUrl, setVideoLinkUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   
@@ -43,6 +44,13 @@ const CreatePopup = () => {
   const [textColor, setTextColor] = useState("#000000");
   const [popupWidth, setPopupWidth] = useState("400px");
   const [popupHeight, setPopupHeight] = useState("auto");
+  
+  // Button Styling States
+  const [buttonColor, setButtonColor] = useState("#6D28D9");
+  const [buttonTextColor, setButtonTextColor] = useState("#FFFFFF");
+  const [buttonRadius, setButtonRadius] = useState("0.375rem");
+  const [buttonPadding, setButtonPadding] = useState("0.5rem 1rem");
+  const [buttonFontWeight, setButtonFontWeight] = useState("500");
   
   // File upload states
   const [isUploading, setIsUploading] = useState(false);
@@ -424,6 +432,17 @@ const CreatePopup = () => {
                             </div>
                           )}
                         </div>
+                        <div className="mt-2">
+                          <Label htmlFor="videoLink">Video Link</Label>
+                          <Input
+                            id="videoLink"
+                            type="url"
+                            placeholder="https://example.com/video.mp4"
+                            value={videoLinkUrl}
+                            onChange={(e) => setVideoLinkUrl(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -441,6 +460,10 @@ const CreatePopup = () => {
                           <SelectItem value="left">Left</SelectItem>
                           <SelectItem value="right">Right</SelectItem>
                           <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="top-left">Top Left</SelectItem>
+                          <SelectItem value="top-right">Top Right</SelectItem>
+                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -481,16 +504,6 @@ const CreatePopup = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="ctaProfileUrl">Profile URL</Label>
-                    <Input
-                      id="ctaProfileUrl"
-                      type="url"
-                      placeholder="https://yourprofile.com"
-                      value={ctaProfileUrl}
-                      onChange={(e) => setCtaProfileUrl(e.target.value)}
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="ctaProfileImage">Profile Image</Label>
                     <div className="flex items-center gap-4 mt-1">
                       <Input
@@ -507,9 +520,28 @@ const CreatePopup = () => {
                         }}
                       />
                       {ctaProfileImageUrl && (
-                        <div className="relative h-12 w-12 rounded-full overflow-hidden border">
-                          <img src={ctaProfileImageUrl} alt="Profile" className="h-full w-full object-cover" />
-                        </div>
+                        <>
+                          <div className="relative h-12 w-12 rounded-full overflow-hidden border">
+                            <img src={ctaProfileImageUrl} alt="Profile" className="h-full w-full object-cover" />
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setCtaProfileImageUrl('');
+                              setCtaProfileImage(null);
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = '';
+                              }
+                              toast({
+                                title: "Profile image removed",
+                                description: "Profile image has been removed"
+                              });
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
