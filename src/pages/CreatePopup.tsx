@@ -234,11 +234,18 @@ const CreatePopup = () => {
     logoText,
     logoUrl,
     imageUrl,
+    videoUrl: videoUrl || videoLinkUrl, // Use either uploaded video or video link
     // Styling options
     backgroundColor,
     textColor,
     popupWidth,
     popupHeight,
+    // Button styling options
+    buttonColor,
+    buttonTextColor,
+    buttonRadius,
+    buttonPadding,
+    buttonFontWeight,
     // Make sure template is set correctly based on popup type
     template: popupType === 'image' ? 'image' : 
               ctaProfileImageUrl ? 'profile' : 'standard',
@@ -568,6 +575,84 @@ const CreatePopup = () => {
                           value={buttonUrl}
                           onChange={(e) => setButtonUrl(e.target.value)}
                         />
+                      </div>
+                    </div>
+                    
+                    {/* Button Styling */}
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <Label htmlFor="buttonColor">Button Color</Label>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-6 w-6 rounded border" 
+                            style={{ backgroundColor: buttonColor }}
+                          />
+                          <Input
+                            id="buttonColor"
+                            type="text"
+                            placeholder="#6D28D9"
+                            value={buttonColor}
+                            onChange={(e) => setButtonColor(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="buttonTextColor">Text Color</Label>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-6 w-6 rounded border" 
+                            style={{ backgroundColor: buttonTextColor }}
+                          />
+                          <Input
+                            id="buttonTextColor"
+                            type="text"
+                            placeholder="#FFFFFF"
+                            value={buttonTextColor}
+                            onChange={(e) => setButtonTextColor(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="buttonRadius">Border Radius</Label>
+                        <Select value={buttonRadius} onValueChange={setButtonRadius}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">None</SelectItem>
+                            <SelectItem value="0.125rem">Small</SelectItem>
+                            <SelectItem value="0.375rem">Medium</SelectItem>
+                            <SelectItem value="0.5rem">Large</SelectItem>
+                            <SelectItem value="9999px">Full</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="buttonPadding">Padding</Label>
+                        <Select value={buttonPadding} onValueChange={setButtonPadding}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0.25rem 0.5rem">Small</SelectItem>
+                            <SelectItem value="0.5rem 1rem">Medium</SelectItem>
+                            <SelectItem value="0.75rem 1.5rem">Large</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="buttonFontWeight">Font Weight</Label>
+                        <Select value={buttonFontWeight} onValueChange={setButtonFontWeight}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="400">Normal</SelectItem>
+                            <SelectItem value="500">Medium</SelectItem>
+                            <SelectItem value="600">Semibold</SelectItem>
+                            <SelectItem value="700">Bold</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
