@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase, trackEvent } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { X } from 'lucide-react';
+import { Helmet } from "react-helmet";
 
 // Define the type for popup data
 interface PopupData {
@@ -66,6 +67,12 @@ const RedirectPage = () => {
   const { toast } = useToast();
   // New state for iframe loaded status
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [metaTags, setMetaTags] = useState<{
+    title: string;
+    description: string;
+    image?: string;
+    url: string;
+  } | null>(null);
   
   // Debug info - log the slug parameter
   console.log('RedirectPage: Current slug parameter:', slug);
@@ -250,6 +257,14 @@ const RedirectPage = () => {
         
         console.log("Parsed popup content:", parsedContent); // Debug: Log the parsed content
         setPopupContent(parsedContent);
+        
+        // Set meta tags for social media preview
+        setMetaTags({
+          title: linkData.title || parsedContent.profile_name || 'Check this out!',
+          description: linkData.description || parsedContent.description || 'Click to view content',
+          image: parsedContent.image_url || parsedContent.profile_image_url,
+          url: linkData.destination_url
+        });
 
         // Get delay from the popup configuration
         let delay = 0;
@@ -354,9 +369,35 @@ const RedirectPage = () => {
 
   // The iframe-based layout with popup overlay
   return (
-    <div className="h-screen w-screen overflow-hidden relative">
-      {/* Error display */}
-      {error && (
+    <>
+      {/* Dynamic meta tags for social media preview */}
+      {metaTags && (
+        <Helmet>
+          <title>{metaTags.title}</title>
+          <meta name="description" content={metaTags.description} />
+          
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={window.location.href} />
+          <meta property="og:title" content={metaTags.title} />
+          <meta property="og:description" content={metaTags.description} />
+          {metaTags.image && <meta property="og:image" content={metaTags.image} />}
+          
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:url" content={window.location.href} />
+          <meta name="twitter:title" content={metaTags.title} />
+          <meta name="twitter:description" content={metaTags.description} />
+          {metaTags.image && <meta name="twitter:image" content={metaTags.image} />}
+          
+          {/* Canonical URL - points to destination */}
+          <link rel="canonical" href={metaTags.url} />
+        </Helmet>
+      )}
+      
+      <div className="h-screen w-screen overflow-hidden relative">
+        {/* Error display */}
+        {error && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-50">
           <div className="text-center max-w-md p-6 bg-red-50 border border-red-200 rounded-lg">
             <h1 className="text-2xl font-bold text-red-700 mb-4">Error Loading Link</h1>
@@ -468,7 +509,8 @@ const RedirectPage = () => {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
