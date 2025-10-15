@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { LinkIcon, Plus, BarChart3, Eye, Copy, Trash2, ExternalLink, Calendar, TrendingUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { getShortLinks, deleteShortLink } from "@/lib/supabase";
+import { getShortLinks, deleteShortLink, getClickStats } from "@/lib/supabase";
 
 interface PopupLink {
   id: string;
@@ -17,7 +17,7 @@ interface PopupLink {
   title: string; // Changed from name to match database schema
   description: string;
   active: boolean;
-  clicks?: number; // Making this optional as it might be calculated
+  clicks?: number; // Calculated from analytics table
   created_at: string;
   updated_at: string;
   popups: {
@@ -27,8 +27,19 @@ interface PopupLink {
   } | null;
 }
 
+interface ClickStats {
+  totalClicks: number;
+  avgClicksPerLink: number;
+  clicksByLink: Record<string, number>;
+}
+
 const Dashboard = () => {
   const [links, setLinks] = useState<PopupLink[]>([]);
+  const [clickStats, setClickStats] = useState<ClickStats>({
+    totalClicks: 0,
+    avgClicksPerLink: 0,
+    clicksByLink: {}
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -36,20 +47,33 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
 
   useEffect(() => {
-    const fetchLinks = async () => {
+    const fetchData = async () => {
       if (!user) return;
       
       try {
         setIsLoading(true);
-        const shortLinks = await getShortLinks(user.id);
-        setLinks(shortLinks);
+        
+        // Fetch links and analytics in parallel
+        const [shortLinks, stats] = await Promise.all([
+          getShortLinks(user.id),
+          getClickStats(user.id)
+        ]);
+        
+        // Merge click counts into links
+        const linksWithClicks = shortLinks.map(link => ({
+          ...link,
+          clicks: stats.clicksByLink[link.id] || 0
+        }));
+        
+        setLinks(linksWithClicks);
+        setClickStats(stats);
         setError(null);
       } catch (err: any) {
-        console.error('Error fetching links:', err);
-        setError(err.message || 'Failed to load your links');
+        console.error('Error fetching data:', err);
+        setError(err.message || 'Failed to load your data');
         toast({
           title: 'Error',
-          description: 'Failed to load your links',
+          description: 'Failed to load your data',
           variant: 'destructive'
         });
       } finally {
@@ -57,7 +81,7 @@ const Dashboard = () => {
       }
     };
 
-    fetchLinks();
+    fetchData();
   }, [user, toast]);
 
   const handleLogout = async () => {
@@ -93,9 +117,6 @@ const Dashboard = () => {
   };
 
   if (!user) return null;
-
-  const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
-  const avgCtr = links.length > 0 ? (totalClicks / links.length).toFixed(1) : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,7 +198,7 @@ const Dashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{totalClicks}</div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{clickStats.totalClicks}</div>
                   <p className="text-xs text-blue-600 font-medium">All time clicks</p>
                 </CardContent>
               </Card>
@@ -190,7 +211,7 @@ const Dashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{avgCtr}</div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{clickStats.avgClicksPerLink.toFixed(1)}</div>
                   <p className="text-xs text-green-600 font-medium">Per link</p>
                 </CardContent>
               </Card>

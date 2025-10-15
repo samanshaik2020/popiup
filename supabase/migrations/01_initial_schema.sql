@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS short_links (
     title VARCHAR(255),
     description TEXT,
     active BOOLEAN DEFAULT true,
+    clicks INTEGER DEFAULT 0, -- Cached count of clicks, synced from analytics table
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

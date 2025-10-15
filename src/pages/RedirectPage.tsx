@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { supabase, trackEvent } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { X } from 'lucide-react';
 
@@ -184,30 +184,19 @@ const RedirectPage = () => {
 
         console.log("Fetched link data:", linkData); // Debug: Log the data structure
 
-        // Increment click count with error handling
+        // Track click event in analytics table
         try {
-          // Use a direct update with error handling
-          const { error: updateError } = await supabase
-            .from('short_links')
-            .update({ 
-              clicks: (linkData.clicks || 0) + 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', linkData.id);
-          
-          if (updateError) {
-            console.error("Error incrementing clicks:", updateError);
-          } else {
-            console.log("Click count updated successfully");
-          }
-          
-          // For a more robust solution in production, consider:
-          // 1. Creating a Postgres function that does an atomic increment
-          // 2. Using Supabase Edge Functions for atomic operations
-          // 3. Implementing a queue system for analytics events
+          await trackEvent({
+            short_link_id: linkData.id,
+            popup_id: linkData.popup_id,
+            event_type: 'click',
+            referrer: document.referrer || null,
+            browser: navigator.userAgent || null
+          });
+          console.log("Click event tracked successfully");
         } catch (err) {
-          console.error("Exception during click update:", err);
-          // Continue with the flow even if click update fails
+          console.error("Error tracking click event:", err);
+          // Continue with the flow even if tracking fails
         }
 
         // Set link data

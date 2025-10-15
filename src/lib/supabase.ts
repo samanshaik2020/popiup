@@ -294,3 +294,63 @@ export const getAnalytics = async (userId: string, filters?: {
   if (error) throw error
   return data
 }
+
+// Get click statistics for a user
+export const getClickStats = async (userId: string) => {
+  // Get all short links for the user
+  const { data: links, error: linksError } = await supabase
+    .from('short_links')
+    .select('id')
+    .eq('user_id', userId)
+  
+  if (linksError) throw linksError
+  
+  if (!links || links.length === 0) {
+    return {
+      totalClicks: 0,
+      avgClicksPerLink: 0,
+      clicksByLink: {}
+    }
+  }
+  
+  const linkIds = links.map(link => link.id)
+  
+  // Get all click events for these links
+  const { data: analytics, error: analyticsError } = await supabase
+    .from('analytics')
+    .select('short_link_id, event_type')
+    .in('short_link_id', linkIds)
+    .eq('event_type', 'click')
+  
+  if (analyticsError) throw analyticsError
+  
+  // Calculate statistics
+  const totalClicks = analytics?.length || 0
+  const avgClicksPerLink = links.length > 0 ? totalClicks / links.length : 0
+  
+  // Group clicks by link
+  const clicksByLink: Record<string, number> = {}
+  analytics?.forEach(event => {
+    if (event.short_link_id) {
+      clicksByLink[event.short_link_id] = (clicksByLink[event.short_link_id] || 0) + 1
+    }
+  })
+  
+  return {
+    totalClicks,
+    avgClicksPerLink,
+    clicksByLink
+  }
+}
+
+// Get clicks for a specific short link
+export const getShortLinkClicks = async (shortLinkId: string) => {
+  const { data, error } = await supabase
+    .from('analytics')
+    .select('*')
+    .eq('short_link_id', shortLinkId)
+    .eq('event_type', 'click')
+  
+  if (error) throw error
+  return data?.length || 0
+}
