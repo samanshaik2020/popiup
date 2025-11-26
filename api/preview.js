@@ -56,6 +56,8 @@ export default async function handler(req, res) {
             'og:title': title,
             'og:description': description,
             'og:image': image,
+            'og:image:width': '1200',
+            'og:image:height': '630',
             'og:url': url
         };
 
