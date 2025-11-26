@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/r/:slug",
+      "destination": "/api/preview?slug=:slug"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }
