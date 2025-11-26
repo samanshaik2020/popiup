@@ -14,6 +14,7 @@ import CreatePopup from "./pages/CreatePopup";
 import EditPopup from "./pages/EditPopup";
 import RedirectPage from "./pages/RedirectPage";
 import AuthCallback from "./pages/AuthCallback";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,12 +47,17 @@ const App = () => (
                 <EditPopup />
               </ProtectedRoute>
             } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            } />
             {/* Support the /r/:slug format for backward compatibility */}
             <Route path="/r/:slug" element={<RedirectPage />} />
-            
+
             {/* This is the catch-all slug route for direct domain URLs */}
             <Route path="/:slug" element={<RedirectPage />} />
-            
+
             {/* This is the 404 catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
