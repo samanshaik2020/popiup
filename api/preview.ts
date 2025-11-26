@@ -1,13 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { slug } = req.query;
+
+    console.log(`[Preview Function] Processing slug: ${slug}`);
 
     // Initialize Supabase client
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
+        console.error('[Preview Function] Missing Supabase configuration');
         return res.status(500).json({ error: 'Missing Supabase configuration' });
     }
 
@@ -22,7 +26,8 @@ export default async function handler(req, res) {
             .single();
 
         if (error || !link) {
-            // Link not found, redirect to home or 404
+            console.log(`[Preview Function] Link not found for slug: ${slug}`);
+            // Link not found, redirect to home
             return res.redirect('/');
         }
 
@@ -32,6 +37,7 @@ export default async function handler(req, res) {
             ? `https://${process.env.VERCEL_URL}`
             : 'http://localhost:5173';
 
+        console.log(`[Preview Function] Fetching index.html from: ${appUrl}`);
         const indexResponse = await fetch(`${appUrl}/index.html`);
         let html = await indexResponse.text();
 
@@ -93,7 +99,7 @@ export default async function handler(req, res) {
         return res.status(200).send(html);
 
     } catch (err) {
-        console.error('Error in preview handler:', err);
+        console.error('[Preview Function] Error:', err);
         return res.status(500).send('Internal Server Error');
     }
 }

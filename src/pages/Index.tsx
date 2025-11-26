@@ -1,567 +1,267 @@
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { ArrowRight, Link as LinkIcon, Eye, BarChart3, CheckCircle, Users, TrendingUp } from "lucide-react";
-import { motion, useScroll, useTransform, AnimatePresence, useInView } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-
-// CountAnimation component for animating number counting
-interface CountAnimationProps {
-  targetNumber: number;
-  suffix?: string;
-  duration?: number;
-}
-
-const CountAnimation = ({ targetNumber, suffix = "", duration = 2 }: CountAnimationProps) => {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.5 });
-
-  useEffect(() => {
-    if (!isInView) return;
-    
-    let startTimestamp: number | null = null;
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / (duration * 1000), 1);
-      setCount(Math.floor(progress * targetNumber));
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      }
-    };
-    window.requestAnimationFrame(step);
-  }, [isInView, targetNumber, duration]);
-
-  return <div ref={ref}>{count}{suffix}</div>;
-};
-
-// Animation variants for staggered animations
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.3,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { type: "spring", stiffness: 100 } as any,
-  },
-};
-
-// Fade-in animation for sections
-const fadeInVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
-      duration: 0.6, 
-      ease: "easeOut" 
-    } as any
-  },
-};
+import {
+  BarChart3,
+  ArrowRight,
+  ArrowUpRight,
+  LineChart,
+  UserPlus,
+  Globe,
+  Link as LinkIcon,
+  Megaphone,
+  Share2,
+  Server,
+  Shield
+} from "lucide-react";
 
 const Index = () => {
-  // Scroll animation setup
-  const { scrollYProgress } = useScroll();
-  const [isLoaded, setIsLoaded] = useState(false);
-  
-  // Parallax effect for background elements
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, 100]);
-  
-  // Trigger animations after initial load
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-x-hidden">
-      {/* Navigation */}
-      <motion.nav 
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 50, damping: 15 }}
-        className="flex justify-between items-center px-8 py-6 bg-white/90 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50"
-      >
-        <motion.div 
-          className="flex items-center space-x-3"
-          whileHover={{ scale: 1.05 }}
-          transition={{ type: "spring", stiffness: 400, damping: 10 }}
-        >
-          <motion.div 
-            className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl"
-            whileHover={{ rotate: 15 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <LinkIcon className="h-6 w-6 text-white" />
-          </motion.div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Popiup</span>
-        </motion.div>
-        <motion.div 
-          className="flex items-center space-x-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants}>
-            <Link to="/login">
-              <Button variant="ghost" className="font-medium hover:bg-gray-100">Login</Button>
+    <div className="font-sans bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary antialiased min-h-screen">
+      <div className="relative overflow-hidden">
+        <header className="absolute inset-x-0 top-0 z-10">
+          <nav className="container mx-auto px-6 py-6 flex items-center justify-between">
+            <Link to="/" className="flex items-center space-x-2">
+              <span className="bg-primary text-white rounded-lg p-2 flex items-center justify-center">
+                <BarChart3 className="w-6 h-6" />
+              </span>
+              <span className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Popiup</span>
             </Link>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <Link to="/register">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium px-6 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  Get Started
-                </Button>
-              </motion.div>
-            </Link>
-          </motion.div>
-        </motion.div>
-      </motion.nav>
+            <div className="hidden md:flex items-center space-x-8">
+              <a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Features</a>
+              <a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Pricing</a>
+              <a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Solutions</a>
+              <a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Company</a>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link to="/login" className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors">Log In</Link>
+              <Link to="/register" className="bg-primary text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:bg-opacity-90 transition-opacity">Get Started</Link>
+            </div>
+          </nav>
+        </header>
+        <main>
+          <section className="relative pt-32 md:pt-48 pb-20 md:pb-32 bg-background-light dark:bg-gray-900">
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 to-background-light dark:from-blue-950/20 dark:to-background-dark"></div>
+            <div className="container mx-auto px-6 text-center relative z-10">
+              <div className="inline-flex items-center space-x-2 bg-blue-100/50 dark:bg-blue-900/30 text-primary dark:text-accent px-3 py-1 rounded-full text-sm font-medium mb-4">
+                <span className="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
+                <span>Precision. Performance. Profit.</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-extrabold text-text-light-primary dark:text-text-dark-primary leading-tight">
+                Optimize Every Click. <br />
+                <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">Drive Data-Driven Results.</span>
+              </h1>
+              <p className="mt-6 max-w-2xl mx-auto text-lg text-text-light-secondary dark:text-text-dark-secondary">
+                Transform raw clicks into actionable intelligence. Our platform empowers marketers with the tools to track, analyze, and optimize every link's journey for maximum ROI.
+              </p>
 
-      {/* Hero Section */}
-      <motion.section 
-        className="px-8 py-24 text-center relative overflow-hidden"
-        style={{ opacity: heroOpacity, y: heroY }}
-      >
-        <motion.div 
-          className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-blue-600/5"
-          animate={{ 
-            backgroundPosition: ["0% 0%", "100% 100%"], 
-          }}
-          transition={{ 
-            duration: 20, 
-            ease: "linear", 
-            repeat: Infinity, 
-            repeatType: "reverse" 
-          }}
-        ></motion.div>
-        <div className="max-w-5xl mx-auto relative">
-          <motion.div 
-            className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-full mb-8"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <span className="text-sm font-medium text-purple-700">🚀 Transform your links into revenue</span>
-          </motion.div>
-          
-          <motion.h1 
-            className="text-6xl font-bold text-gray-900 mb-8 leading-tight"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.7 }}
-          >
-            Turn every link into a
-            <motion.span 
-              className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600"
-              animate={{ 
-                backgroundPosition: ["0% 0%", "100% 100%"], 
-              }}
-              transition={{ 
-                duration: 3, 
-                ease: "linear", 
-                repeat: Infinity, 
-                repeatType: "reverse" 
-              }}
-            >
-              {" "}conversion machine
-            </motion.span>
-          </motion.h1>
-          
-          <motion.p 
-            className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.7 }}
-          >
-            Create intelligent short links with customizable popup campaigns. 
-            Monetize your traffic while delivering exceptional user experiences.
-          </motion.p>
-          
-          <motion.div 
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.7 }}
-          >
-            <Link to="/register">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg px-8 py-4 h-14 shadow-xl hover:shadow-2xl transition-all duration-300">
-                  Start Free Trial
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </motion.div>
-                </Button>
-              </motion.div>
-            </Link>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button size="lg" variant="outline" className="text-lg px-8 py-4 h-14 border-2 hover:bg-gray-50">
-                Watch Demo
-              </Button>
-            </motion.div>
-          </motion.div>
-          
-          <motion.div 
-            className="flex items-center justify-center space-x-8 mt-12 text-sm text-gray-500"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 1.2, staggerChildren: 0.2 }}
-          >
-            <motion.div className="flex items-center space-x-2" variants={itemVariants}>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>No credit card required</span>
-            </motion.div>
-            <motion.div className="flex items-center space-x-2" variants={itemVariants}>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>14-day free trial</span>
-            </motion.div>
-            <motion.div className="flex items-center space-x-2" variants={itemVariants}>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>Cancel anytime</span>
-            </motion.div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* Stats Section */}
-      <motion.section 
-        className="px-8 py-16 bg-white"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.3 }}
-        variants={fadeInVariants}
-      >
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            className="grid md:grid-cols-3 gap-8 text-center"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <motion.div className="p-8" variants={itemVariants}>
-              <motion.div 
-                className="text-4xl font-bold text-purple-600 mb-2"
-                initial={{ opacity: 0, scale: 0.5 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ type: "spring", duration: 1.5 }}
-              >
-                <CountAnimation targetNumber={10} suffix="M+" />
-              </motion.div>
-              <div className="text-gray-600 font-medium">Links Created</div>
-            </motion.div>
-            <motion.div className="p-8" variants={itemVariants}>
-              <motion.div 
-                className="text-4xl font-bold text-blue-600 mb-2"
-                initial={{ opacity: 0, scale: 0.5 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ type: "spring", duration: 1.5, delay: 0.2 }}
-              >
-                <CountAnimation targetNumber={250} suffix="K+" />
-              </motion.div>
-              <div className="text-gray-600 font-medium">Active Users</div>
-            </motion.div>
-            <motion.div className="p-8" variants={itemVariants}>
-              <motion.div 
-                className="text-4xl font-bold text-indigo-600 mb-2"
-                initial={{ opacity: 0, scale: 0.5 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ type: "spring", duration: 1.5, delay: 0.4 }}
-              >
-                <CountAnimation targetNumber={98} suffix="%" />
-              </motion.div>
-              <div className="text-gray-600 font-medium">Uptime</div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* How It Works */}
-      <motion.section 
-        className="px-8 py-20 bg-gradient-to-b from-gray-50 to-white"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={fadeInVariants}
-      >
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Three simple steps to start monetizing your links and growing your business
-            </p>
-          </motion.div>
-          <motion.div 
-            className="grid md:grid-cols-3 gap-8"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            <motion.div variants={itemVariants}>
-              <Card className="relative border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group">
-                <motion.div 
-                  className="absolute -top-4 left-6"
-                  initial={{ scale: 0, rotate: -180 }}
-                  whileInView={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  viewport={{ once: true }}
-                >
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                    1
+            </div>
+          </section>
+          <section className="py-12 bg-gray-50 dark:bg-gray-800/50">
+            <div className="container mx-auto px-6">
+              <div className="flex justify-center items-center flex-wrap gap-x-8 md:gap-x-12 gap-y-4 text-gray-500 dark:text-gray-400">
+                <span className="font-medium text-sm">Salesforce</span>
+                <span className="font-medium text-sm">Google Analytics</span>
+                <span className="font-medium text-sm">HubSpot</span>
+                <span className="font-medium text-sm">Tableau</span>
+              </div>
+            </div>
+          </section>
+          <section className="py-20 md:py-28 bg-white dark:bg-gray-900">
+            <div className="container mx-auto px-6">
+              <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl font-bold text-text-light-primary dark:text-text-dark-primary">
+                  Your Data, Visualized. Your Performance, Amplified.
+                </h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-text-light-secondary dark:text-text-dark-secondary">
+                  Gain comprehensive insights into your link performance with a glance.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col items-start">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 text-primary dark:text-accent mb-3">
+                    <ArrowUpRight className="w-5 h-5" />
                   </div>
-                </motion.div>
-                <CardHeader className="pt-8">
-                  <motion.div 
-                    className="p-3 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-200"
-                    whileHover={{ rotate: 15 }}
-                  >
-                    <LinkIcon className="h-8 w-8 text-purple-600" />
-                  </motion.div>
-                  <CardTitle className="text-xl">Create Short Link</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 leading-relaxed">
-                    Paste any URL and we'll instantly create a professional, branded short link optimized for sharing.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <Card className="relative border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group">
-                <motion.div 
-                  className="absolute -top-4 left-6"
-                  initial={{ scale: 0, rotate: -180 }}
-                  whileInView={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.4 }}
-                  viewport={{ once: true }}
-                >
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                    2
+                  <p className="text-3xl font-bold text-primary dark:text-accent">10.3M</p>
+                  <p className="mt-1 text-text-light-secondary dark:text-text-dark-secondary text-sm">Total Clicks</p>
+                  <div className="w-full h-16 bg-gray-100 dark:bg-gray-800 rounded-md mt-4 flex items-end overflow-hidden">
+                    <div className="w-1/4 h-2/3 bg-accent opacity-70"></div>
+                    <div className="w-1/4 h-1/2 bg-accent opacity-70"></div>
+                    <div className="w-1/4 h-3/4 bg-accent opacity-70"></div>
+                    <div className="w-1/4 h-1/3 bg-accent opacity-70"></div>
                   </div>
-                </motion.div>
-                <CardHeader className="pt-8">
-                  <motion.div 
-                    className="p-3 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-200"
-                    whileHover={{ rotate: 15 }}
-                  >
-                    <Eye className="h-8 w-8 text-purple-600" />
-                  </motion.div>
-                  <CardTitle className="text-xl">Design Your Campaign</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 leading-relaxed">
-                    Create stunning popup campaigns with our intuitive editor. Choose timing, placement, and messaging.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <Card className="relative border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group">
-                <motion.div 
-                  className="absolute -top-4 left-6"
-                  initial={{ scale: 0, rotate: -180 }}
-                  whileInView={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.6 }}
-                  viewport={{ once: true }}
-                >
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                    3
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col items-start">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 text-primary dark:text-accent mb-3">
+                    <LineChart className="w-5 h-5" />
                   </div>
-                </motion.div>
-                <CardHeader className="pt-8">
-                  <motion.div 
-                    className="p-3 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-200"
-                    whileHover={{ rotate: 15 }}
-                  >
-                    <TrendingUp className="h-8 w-8 text-purple-600" />
-                  </motion.div>
-                  <CardTitle className="text-xl">Track & Optimize</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 leading-relaxed">
-                    Monitor performance with detailed analytics and optimize your campaigns for maximum conversion.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* CTA Section */}
-      <motion.section 
-        className="px-8 py-20 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white relative overflow-hidden"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={fadeInVariants}
-      >
-        <motion.div 
-          className="absolute inset-0 bg-black/10"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-          viewport={{ once: true }}
-        ></motion.div>
-        <div className="max-w-4xl mx-auto text-center relative">
-          <motion.h2 
-            className="text-4xl font-bold mb-6"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-          >
-            Ready to transform your links?
-          </motion.h2>
-          <motion.p 
-            className="text-xl mb-8 opacity-90 max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            viewport={{ once: true }}
-          >
-            Join thousands of marketers and businesses who are already maximizing their link potential with Popiup
-          </motion.p>
-          <motion.div 
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <Link to="/register">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-4 h-14 font-semibold shadow-xl">
-                  Start Your Free Trial
-                  <motion.span
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </motion.span>
-                </Button>
-              </motion.div>
-            </Link>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button size="lg" variant="outline" className="border-2 border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 h-14">
-                Schedule Demo
-              </Button>
-            </motion.div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* Footer */}
-      <motion.footer 
-        className="px-8 py-12 bg-gray-900 text-gray-300"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={fadeInVariants}
-      >
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            className="flex flex-col md:flex-row justify-between items-center"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            <motion.div className="flex items-center space-x-3 mb-4 md:mb-0" variants={itemVariants}>
-              <motion.div 
-                className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl"
-                whileHover={{ rotate: 15, scale: 1.1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <LinkIcon className="h-5 w-5 text-white" />
-              </motion.div>
-              <span className="text-xl font-bold text-white">Popiup</span>
-            </motion.div>
-            <motion.div className="flex items-center space-x-8 text-sm" variants={itemVariants}>
-              <motion.a 
-                href="#" 
-                className="hover:text-white transition-colors"
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                Privacy Policy
-              </motion.a>
-              <motion.a 
-                href="#" 
-                className="hover:text-white transition-colors"
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                Terms of Service
-              </motion.a>
-              <motion.a 
-                href="#" 
-                className="hover:text-white transition-colors"
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                Support
-              </motion.a>
-            </motion.div>
-          </motion.div>
-          <motion.div 
-            className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-500"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.7 }}
-            viewport={{ once: true }}
-          >
-            © 2024 Popiup. All rights reserved. Built for the modern marketer.
-          </motion.div>
-        </div>
-      </motion.footer>
+                  <p className="text-3xl font-bold text-primary dark:text-accent">25.7%</p>
+                  <p className="mt-1 text-text-light-secondary dark:text-text-dark-secondary text-sm">Conversion Rate</p>
+                  <div className="w-full h-16 bg-gray-100 dark:bg-gray-800 rounded-md mt-4 flex items-end overflow-hidden">
+                    <div className="w-full h-full flex justify-between items-end gap-1 px-1 py-1">
+                      <div className="w-1/5 h-2/3 bg-blue-500 dark:bg-blue-600 rounded-sm"></div>
+                      <div className="w-1/5 h-1/2 bg-blue-500 dark:bg-blue-600 rounded-sm"></div>
+                      <div className="w-1/5 h-1/3 bg-blue-500 dark:bg-blue-600 rounded-sm"></div>
+                      <div className="w-1/5 h-1/4 bg-blue-500 dark:bg-blue-600 rounded-sm"></div>
+                      <div className="w-1/5 h-1/5 bg-blue-500 dark:bg-blue-600 rounded-sm"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col items-start">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 text-primary dark:text-accent mb-3">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <p className="text-3xl font-bold text-primary dark:text-accent">150K+</p>
+                  <p className="mt-1 text-text-light-secondary dark:text-text-dark-secondary text-sm">New Leads Generated</p>
+                  <div className="w-full h-16 bg-gray-100 dark:bg-gray-800 rounded-md mt-4 flex items-end overflow-hidden">
+                    <div className="w-full h-full flex items-end px-1">
+                      <div className="w-1/6 h-1/3 bg-accent rounded-t-sm"></div>
+                      <div className="w-1/6 h-2/3 bg-accent rounded-t-sm"></div>
+                      <div className="w-1/6 h-1/2 bg-accent rounded-t-sm"></div>
+                      <div className="w-1/6 h-3/4 bg-accent rounded-t-sm"></div>
+                      <div className="w-1/6 h-full bg-accent rounded-t-sm"></div>
+                      <div className="w-1/6 h-2/5 bg-accent rounded-t-sm"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col items-start">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 text-primary dark:text-accent mb-3">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <p className="text-3xl font-bold text-primary dark:text-accent">Global Reach</p>
+                  <p className="mt-1 text-text-light-secondary dark:text-text-dark-secondary text-sm">Top 5 Countries by Clicks</p>
+                  <div className="w-full h-16 bg-gray-100 dark:bg-gray-800 rounded-md mt-4 p-2">
+                    <ul className="text-xs text-text-light-secondary dark:text-text-dark-secondary space-y-1">
+                      <li className="flex justify-between"><span>USA</span> <span className="font-medium text-primary dark:text-accent">35%</span></li>
+                      <li className="flex justify-between"><span>UK</span> <span className="font-medium text-primary dark:text-accent">18%</span></li>
+                      <li className="flex justify-between"><span>Germany</span> <span className="font-medium text-primary dark:text-accent">12%</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section className="py-20 md:py-28 bg-background-light dark:bg-background-dark">
+            <div className="container mx-auto px-6 text-center">
+              <h2 className="text-4xl md:text-5xl font-bold text-text-light-primary dark:text-text-dark-primary">
+                Comprehensive Tools for the <span className="text-primary dark:text-accent">Analytical Marketer</span>
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-lg text-text-light-secondary dark:text-text-dark-secondary">
+                From granular tracking to insightful reporting, get everything you need to make informed decisions.
+              </p>
+              <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-accent mb-4">
+                    <LinkIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Precision Link Tracking</h3>
+                  <p className="mt-2 text-text-light-secondary dark:text-text-dark-secondary">Monitor every click with unparalleled accuracy, capturing essential data points for detailed analysis.</p>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-accent mb-4">
+                    <Megaphone className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Dynamic Campaign Attribution</h3>
+                  <p className="mt-2 text-text-light-secondary dark:text-text-dark-secondary">Attribute conversions accurately to specific campaigns, channels, and even individual links.</p>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-accent mb-4">
+                    <LineChart className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Real-time Performance Dashboards</h3>
+                  <p className="mt-2 text-text-light-secondary dark:text-text-dark-secondary">Access intuitive dashboards showing key metrics, trends, and opportunities for optimization.</p>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-accent mb-4">
+                    <Share2 className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">A/B Testing & Redirection Rules</h3>
+                  <p className="mt-2 text-text-light-secondary dark:text-text-dark-secondary">Test different landing pages and optimize routing based on user demographics or behavior.</p>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-accent mb-4">
+                    <Server className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Robust API for Integrations</h3>
+                  <p className="mt-2 text-text-light-secondary dark:text-text-dark-secondary">Seamlessly connect with your existing CRM, analytics tools, and marketing automation platforms.</p>
+                </div>
+                <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-accent mb-4">
+                    <Shield className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Enterprise-Grade Data Security</h3>
+                  <p className="mt-2 text-text-light-secondary dark:text-text-dark-secondary">Protect your valuable marketing data with advanced encryption and compliance standards.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section className="py-20 md:py-28">
+            <div className="container mx-auto px-6">
+              <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-3xl p-12 md:p-20 text-center">
+                <h2 className="text-4xl md:text-5xl font-bold">Ready to Elevate Your Marketing Performance?</h2>
+                <p className="mt-4 max-w-xl mx-auto text-lg text-gray-300">Join thousands of data-driven marketers who are achieving measurable growth with Popiup.</p>
+                <div className="mt-10">
+                  <a className="bg-accent text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:bg-opacity-90 transition-colors" href="#">
+                    Explore Advanced Analytics
+                  </a>
+                  <p className="mt-4 text-sm text-gray-400">Request a demo or start your free trial today.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer className="bg-card-light dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+          <div className="container mx-auto px-6 py-16">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+              <div className="md:col-span-2">
+                <Link to="/" className="flex items-center space-x-2">
+                  <span className="bg-primary text-white rounded-lg p-2 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6" />
+                  </span>
+                  <span className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary">Popiup</span>
+                </Link>
+                <p className="mt-4 max-w-xs text-text-light-secondary dark:text-text-dark-secondary">
+                  The definitive link intelligence platform for modern data-driven marketers.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-bold text-text-light-primary dark:text-text-dark-primary">Product</h4>
+                <ul className="mt-4 space-y-3">
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Features</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Pricing</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Integrations</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Enterprise</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold text-text-light-primary dark:text-text-dark-primary">Resources</h4>
+                <ul className="mt-4 space-y-3">
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Blog</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Case Studies</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Help Center</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">API Docs</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold text-text-light-primary dark:text-text-dark-primary">Company</h4>
+                <ul className="mt-4 space-y-3">
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">About</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Careers</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Legal</a></li>
+                  <li><a className="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-accent transition-colors" href="#">Contact</a></li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+              <p>© 2024 Popiup. All rights reserved.</p>
+              <div className="flex space-x-6 mt-4 sm:mt-0">
+                <a className="hover:text-primary dark:hover:text-accent transition-colors" href="#">Privacy</a>
+                <a className="hover:text-primary dark:hover:text-accent transition-colors" href="#">Terms</a>
+                <a className="hover:text-primary dark:hover:text-accent transition-colors" href="#">Cookies</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 };

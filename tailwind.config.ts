@@ -19,15 +19,25 @@ export default {
 		},
 		extend: {
 			colors: {
+				primary: "#0A66C2",
+				accent: "#00BCD4",
+				'background-light': "#F8FAFC",
+				'background-dark': "#0F172A",
+				'card-light': "#FFFFFF",
+				'card-dark': "#1E293B",
+				'text-dark-primary': "#E2E8F0",
+				'text-dark-secondary': "#94A3B8",
+				'text-light-primary': "#1E293B",
+				'text-light-secondary': "#475569",
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
-				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
-				},
+				// primary: {
+				// 	DEFAULT: 'hsl(var(--primary))',
+				// 	foreground: 'hsl(var(--primary-foreground))'
+				// },
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
@@ -40,10 +50,10 @@ export default {
 					DEFAULT: 'hsl(var(--muted))',
 					foreground: 'hsl(var(--muted-foreground))'
 				},
-				accent: {
-					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
-				},
+				// accent: {
+				// 	DEFAULT: 'hsl(var(--accent))',
+				// 	foreground: 'hsl(var(--accent-foreground))'
+				// },
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
 					foreground: 'hsl(var(--popover-foreground))'
