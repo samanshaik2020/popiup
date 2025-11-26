@@ -1,31 +1,20 @@
 import { supabase } from './supabase';
+import { SignUpCredentials, SignInCredentials, AuthResponse } from '@/types';
 
-type SignUpParams = {
-  email: string;
-  password: string;
-  metadata?: {
-    full_name?: string;
-    company?: string;
-  };
-};
-
-type SignInParams = {
-  email: string;
-  password: string;
-};
-
-export const signUp = async ({ email, password, metadata }: SignUpParams) => {
+export const signUp = async ({ email, password, metadata }: SignUpCredentials): Promise<AuthResponse> => {
   try {
-    console.log('Attempting to sign up user:', email);
-    
+    if (import.meta.env.DEV) {
+      console.log('Attempting to sign up user:', email);
+    }
+
     // Trim inputs to prevent whitespace issues
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
-    
+
     if (!trimmedEmail || !trimmedPassword) {
       throw new Error('Email and password cannot be empty');
     }
-    
+
     // For development: Disable email confirmation by setting emailRedirectTo
     const { data, error } = await supabase.auth.signUp({
       email: trimmedEmail,
@@ -36,7 +25,7 @@ export const signUp = async ({ email, password, metadata }: SignUpParams) => {
         emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     });
-    
+
     // Log detailed information for debugging
     if (error) {
       console.error('Supabase Sign Up Error:', {
@@ -45,29 +34,33 @@ export const signUp = async ({ email, password, metadata }: SignUpParams) => {
         name: error.name
       });
     } else {
-      console.log('Sign up response:', { 
-        user: data.user?.email,
-        session: data.session ? 'Session created' : 'No session (email confirmation required)'
-      });
+      if (import.meta.env.DEV) {
+        console.log('Sign up response:', {
+          user: data.user?.email,
+          session: data.session ? 'Session created' : 'No session (email confirmation required)'
+        });
+      }
     }
 
     if (error) {
       // If there's an error with email confirmation, we'll try a different approach
       if (error.message.includes('confirmation email')) {
         console.warn('Email service not configured properly. Attempting alternative signup method.');
-        
+
         // Try creating the user with admin API (this is a workaround for development)
         // First check if the user already exists and try to sign them in
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        
+
         if (!signInError) {
-          console.log('User already exists, signed in successfully');
+          if (import.meta.env.DEV) {
+            console.log('User already exists, signed in successfully');
+          }
           return signInData;
         }
-        
+
         // If we can't sign in, try a different signup approach without email confirmation
         const { data: altSignUpData, error: altSignUpError } = await supabase.auth.signUp({
           email,
@@ -78,54 +71,62 @@ export const signUp = async ({ email, password, metadata }: SignUpParams) => {
             emailRedirectTo: undefined
           }
         });
-        
+
         if (altSignUpError) {
           console.error('Alternative signup failed:', altSignUpError);
           throw altSignUpError;
         }
-        
+
         // Try to immediately sign in after signup
         const { data: autoSignInData, error: autoSignInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        
+
         if (autoSignInError) {
           console.error('Auto sign-in after signup failed:', autoSignInError);
           return altSignUpData; // Return the signup data even without session
         }
-        
+
         return autoSignInData;
       } else {
         // For other errors, throw them as usual
         throw error;
       }
     }
-    
+
     // If signup was successful but no session (needs email confirmation)
     if (data.session === null) {
-      console.log('User created but requires email confirmation. Attempting direct sign-in...');
-      
+      if (import.meta.env.DEV) {
+        console.log('User created but requires email confirmation. Attempting direct sign-in...');
+      }
+
       // Try to sign in anyway (works if email confirmation is not enforced)
       try {
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        
+
         if (signInError) {
-          console.log('Direct sign-in failed, user needs to confirm email first');
+          if (import.meta.env.DEV) {
+            console.log('Direct sign-in failed, user needs to confirm email first');
+          }
           return data; // Return original data with user but no session
         }
-        
-        console.log('Direct sign-in successful despite pending confirmation');
+
+        if (import.meta.env.DEV) {
+          console.log('Direct sign-in successful despite pending confirmation');
+        }
         return signInData;
       } catch (signInError) {
-        console.log('Error during direct sign-in attempt:', signInError);
+        if (import.meta.env.DEV) {
+          console.log('Error during direct sign-in attempt:', signInError);
+        }
         return data; // Return original data
       }
     }
-    
+
     return data;
   } catch (error) {
     console.error('Error during signup:', error);
@@ -133,18 +134,20 @@ export const signUp = async ({ email, password, metadata }: SignUpParams) => {
   }
 };
 
-export const signIn = async ({ email, password }: SignInParams) => {
-  console.log('Attempting to sign in user:', email);
-  
+export const signIn = async ({ email, password }: SignInCredentials): Promise<AuthResponse> => {
+  if (import.meta.env.DEV) {
+    console.log('Attempting to sign in user:', email);
+  }
+
   try {
     // Trim inputs to prevent whitespace issues
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
-    
+
     if (!trimmedEmail || !trimmedPassword) {
       throw new Error('Email and password cannot be empty');
     }
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
       password: trimmedPassword
@@ -159,11 +162,13 @@ export const signIn = async ({ email, password }: SignInParams) => {
       });
       throw error;
     }
-    
-    console.log('Sign in successful:', { user: data.user?.email });
+
+    if (import.meta.env.DEV) {
+      console.log('Sign in successful:', { user: data.user?.email });
+    }
     return data;
-  } catch (error: any) {
-    console.error('Error during sign in:', error.message || error);
+  } catch (error) {
+    console.error('Error during sign in:', error);
     throw error;
   }
 };
@@ -194,14 +199,14 @@ export const updatePassword = async (newPassword: string) => {
 
 export const getCurrentUser = async () => {
   const { data: { user }, error } = await supabase.auth.getUser();
-  
+
   if (error) throw error;
   return user;
 };
 
 export const getSession = async () => {
   const { data: { session }, error } = await supabase.auth.getSession();
-  
+
   if (error) throw error;
   return session;
 };
@@ -220,6 +225,6 @@ export const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook'
 };
 
 // Listen for authentication state changes
-export const onAuthStateChange = (callback: (event: any, session: any) => void) => {
+export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
   return supabase.auth.onAuthStateChange(callback);
 };

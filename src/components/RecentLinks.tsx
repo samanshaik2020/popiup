@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getShortLinks } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "@/types";
 
 interface RecentLinksProps {
   maxItems?: number;
@@ -14,22 +15,22 @@ interface RecentLinksProps {
   currentLinkId?: string | null;
 }
 
-export function RecentLinks({ 
-  maxItems = 5, 
+export function RecentLinks({
+  maxItems = 5,
   showEditOptions = true,
   onEditLink,
   currentLinkId = null
 }: RecentLinksProps) {
-  const [links, setLinks] = useState<any[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   useEffect(() => {
     const fetchLinks = async () => {
       if (!user) return;
-      
+
       try {
         setLoading(true);
         const data = await getShortLinks(user.id);
@@ -45,10 +46,10 @@ export function RecentLinks({
         setLoading(false);
       }
     };
-    
+
     fetchLinks();
   }, [user, maxItems, toast]);
-  
+
   const copyToClipboard = (url: string) => {
     navigator.clipboard.writeText(url);
     toast({
@@ -56,15 +57,15 @@ export function RecentLinks({
       description: "Link copied to clipboard"
     });
   };
-  
+
   return (
     <Card>
       <CardHeader className="flex justify-between items-center">
         <CardTitle>Your Recent Links</CardTitle>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => navigate("/dashboard")} 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/dashboard")}
           className="text-sm"
         >
           View All
@@ -79,8 +80,8 @@ export function RecentLinks({
           ) : links.length > 0 ? (
             <div className="space-y-3">
               {links.map((link) => (
-                <div 
-                  key={link.id} 
+                <div
+                  key={link.id}
                   className={`p-3 border rounded-md hover:bg-gray-50 ${link.id === currentLinkId ? 'border-purple-400 bg-purple-50' : ''}`}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -97,9 +98,9 @@ export function RecentLinks({
                       {`${window.location.origin}/r/${link.slug}`}
                     </code>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 w-8 p-0"
                         onClick={() => copyToClipboard(`${window.location.origin}/r/${link.slug}`)}
                         title="Copy link"
@@ -107,9 +108,9 @@ export function RecentLinks({
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
                       {showEditOptions && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-8 w-8 p-0"
                           onClick={() => {
                             if (onEditLink) {
@@ -123,9 +124,9 @@ export function RecentLinks({
                           <Edit className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 w-8 p-0"
                         onClick={() => window.open(`${window.location.origin}/r/${link.slug}`, '_blank')}
                         title="Open link"

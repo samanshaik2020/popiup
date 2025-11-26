@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { signIn, signUp, signOut, getSession, getCurrentUser } from '@/lib/auth';
+import { AuthResponse, SignInCredentials, SignUpCredentials } from '@/types';
 
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (credentials: { email: string; password: string }) => Promise<any>;
-  signUp: (credentials: { email: string; password: string; metadata?: any }) => Promise<any>;
+  signIn: (credentials: SignInCredentials) => Promise<AuthResponse>;
+  signUp: (credentials: SignUpCredentials) => Promise<AuthResponse>;
   signOut: () => Promise<boolean>;
 };
 
@@ -32,11 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
-        
+
         // Get the current session
         const currentSession = await getSession();
         setSession(currentSession);
-        
+
         // If session exists, get the user
         if (currentSession) {
           const currentUser = await getCurrentUser();
@@ -55,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         setSession(newSession);
-        
+
         if (newSession?.user) {
           setUser(newSession.user);
         } else {
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Handle user login
-  const handleSignIn = async (credentials: { email: string; password: string }) => {
+  const handleSignIn = async (credentials: SignInCredentials): Promise<AuthResponse> => {
     try {
       const result = await signIn(credentials);
       setUser(result.user);
@@ -86,16 +87,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Handle user registration
-  const handleSignUp = async (credentials: { email: string; password: string; metadata?: any }) => {
+  const handleSignUp = async (credentials: SignUpCredentials): Promise<AuthResponse> => {
     try {
       const result = await signUp(credentials);
-      
+
       // If we got a session back, the user is already logged in
       if (result.session) {
         setSession(result.session);
         setUser(result.user);
       }
-      
+
       return result;
     } catch (error) {
       console.error('Error signing up:', error);

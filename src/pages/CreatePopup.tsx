@@ -31,33 +31,38 @@ const CreatePopup = () => {
   const [buttonUrl, setButtonUrl] = useState("");  // No default URL
   const [logoText, setLogoText] = useState("");
   const [logoUrl, setLogoUrl] = useState("");  // No default URL
-  
+
+  // Open Graph metadata for social media previews
+  const [ogTitle, setOgTitle] = useState("");
+  const [ogDescription, setOgDescription] = useState("");
+  const [ogImage, setOgImage] = useState("");
+
   // Image and Video States
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [videoLinkUrl, setVideoLinkUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  
+
   // Custom Styling States
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [textColor, setTextColor] = useState("#000000");
   const [popupWidth, setPopupWidth] = useState("400px");
   const [popupHeight, setPopupHeight] = useState("auto");
-  
+
   // Button Styling States
   const [buttonColor, setButtonColor] = useState("#6D28D9");
   const [buttonTextColor, setButtonTextColor] = useState("#FFFFFF");
   const [buttonRadius, setButtonRadius] = useState("0.375rem");
   const [buttonPadding, setButtonPadding] = useState("0.5rem 1rem");
   const [buttonFontWeight, setButtonFontWeight] = useState("500");
-  
+
   // File upload states
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Track submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<{
@@ -65,7 +70,7 @@ const CreatePopup = () => {
     slug: string;
     fullUrl: string;
   } | null>(null);
-  
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -73,24 +78,24 @@ const CreatePopup = () => {
   // Handle file upload
   const handleFileUpload = async (file: File, fileType: 'logo' | 'image' | 'profile' = 'logo') => {
     if (!file || !user) return;
-    
+
     try {
       setIsUploading(true);
       setUploadProgress(10); // Start progress
-      
+
       // Create a unique file name using timestamp and random string
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
       const filePath = `uploads/${user.id}/${fileName}`;
-      
+
       // Upload the file to Supabase Storage
       const result = await uploadFile(file, filePath, (progress) => {
         setUploadProgress(progress);
       });
-      
+
       // Use the public URL from the result
       const url = result.publicUrl;
-      
+
       // Set the URL based on file type
       switch (fileType) {
         case 'logo':
@@ -106,12 +111,12 @@ const CreatePopup = () => {
           setCtaProfileImage(file);
           break;
       }
-      
+
       toast({
         title: "File uploaded",
         description: "Your file has been uploaded successfully",
       });
-      
+
     } catch (error: any) {
       console.error("Error uploading file:", error);
       toast({
@@ -127,7 +132,7 @@ const CreatePopup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Error",
@@ -136,13 +141,13 @@ const CreatePopup = () => {
       });
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Generate a random slug
       const slug = Math.random().toString(36).substring(2, 10);
-      
+
       // Create popup content as JSON string - using field names that match RedirectPage expectations
       const popupContent = JSON.stringify({
         type: popupType,
@@ -159,7 +164,7 @@ const CreatePopup = () => {
         image_url: imageUrl, // Add the main image URL
         template: popupType === 'image' ? 'image' : ctaProfileImageUrl ? 'profile' : 'standard', // Set template based on content
       });
-      
+
       // Debug the content being saved
       console.log('Saving popup with content:', {
         imageUrl,
@@ -167,7 +172,7 @@ const CreatePopup = () => {
         popupType,
         template: popupType === 'image' ? 'image' : ctaProfileImageUrl ? 'profile' : 'standard'
       });
-      
+
       // First create the popup
       const popup = await createPopup({
         user_id: user.id,
@@ -179,7 +184,7 @@ const CreatePopup = () => {
         trigger_value: parseInt(delay),
         active: true
       });
-      
+
       // Then create the short link associated with this popup
       const shortLink = await createShortLink({
         user_id: user.id,
@@ -188,25 +193,28 @@ const CreatePopup = () => {
         destination_url: originalUrl,
         title: adName,
         description: ctaDescription || null,
-        active: true
+        active: true,
+        og_title: ogTitle || null,
+        og_description: ogDescription || null,
+        og_image: ogImage || null
       });
-      
+
       // Function to generate the full short link URL
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://popiup.com' 
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://popiup.com'
         : window.location.origin;
-        
+
       setGeneratedLink({
         id: shortLink.id,
         slug: shortLink.slug,
         fullUrl: `${baseUrl}/${shortLink.slug}`
       });
-      
+
       toast({
         title: "Popup link created!",
         description: "Your link is ready to share",
       });
-      
+
       // We no longer navigate to dashboard - keep user on this page
     } catch (error: any) {
       console.error("Error creating popup:", error);
@@ -247,10 +255,10 @@ const CreatePopup = () => {
     buttonPadding,
     buttonFontWeight,
     // Make sure template is set correctly based on popup type
-    template: popupType === 'image' ? 'image' : 
-              ctaProfileImageUrl ? 'profile' : 'standard',
+    template: popupType === 'image' ? 'image' :
+      ctaProfileImageUrl ? 'profile' : 'standard',
   };
-  
+
   // Debug the preview data
   console.log('Preview data:', previewData);
 
@@ -290,7 +298,7 @@ const CreatePopup = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="originalUrl">Destination URL</Label>
                     <Input
@@ -301,6 +309,49 @@ const CreatePopup = () => {
                       onChange={(e) => setOriginalUrl(e.target.value)}
                       required
                     />
+                  </div>
+
+                  {/* Social Media Preview Section */}
+                  <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div>
+                      <h3 className="font-medium text-blue-900 mb-1">Social Media Preview</h3>
+                      <p className="text-sm text-blue-700">Customize how your link appears when shared on social media</p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="ogTitle">Preview Title</Label>
+                      <Input
+                        id="ogTitle"
+                        placeholder="Title shown when link is shared (leave empty to use destination URL's title)"
+                        value={ogTitle}
+                        onChange={(e) => setOgTitle(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">This will appear as the title in social media previews</p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="ogDescription">Preview Description</Label>
+                      <Textarea
+                        id="ogDescription"
+                        placeholder="Description shown when link is shared"
+                        value={ogDescription}
+                        onChange={(e) => setOgDescription(e.target.value)}
+                        rows={2}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">This will appear as the description in social media previews</p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="ogImage">Preview Image URL</Label>
+                      <Input
+                        id="ogImage"
+                        type="url"
+                        placeholder="https://example.com/image.jpg"
+                        value={ogImage}
+                        onChange={(e) => setOgImage(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Image shown in social media previews (recommended: 1200x630px)</p>
+                    </div>
                   </div>
 
                   {/* Popup Type */}
@@ -353,7 +404,7 @@ const CreatePopup = () => {
                         <Label htmlFor="video">Video</Label>
                       </div>
                     </RadioGroup>
-                    
+
                     {popupType === "image" && (
                       <div className="mt-4">
                         <Label htmlFor="imageUpload">Upload Image</Label>
@@ -396,7 +447,7 @@ const CreatePopup = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {popupType === "video" && (
                       <div className="mt-4">
                         <Label htmlFor="videoUpload">Upload Video</Label>
@@ -491,7 +542,7 @@ const CreatePopup = () => {
                       </Select>
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="ctaName">Name</Label>
                     <Input
@@ -531,8 +582,8 @@ const CreatePopup = () => {
                           <div className="relative h-12 w-12 rounded-full overflow-hidden border">
                             <img src={ctaProfileImageUrl} alt="Profile" className="h-full w-full object-cover" />
                           </div>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => {
                               setCtaProfileImageUrl('');
@@ -577,14 +628,14 @@ const CreatePopup = () => {
                         />
                       </div>
                     </div>
-                    
+
                     {/* Button Styling */}
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
                         <Label htmlFor="buttonColor">Button Color</Label>
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="h-6 w-6 rounded border" 
+                          <div
+                            className="h-6 w-6 rounded border"
                             style={{ backgroundColor: buttonColor }}
                           />
                           <Input
@@ -599,8 +650,8 @@ const CreatePopup = () => {
                       <div>
                         <Label htmlFor="buttonTextColor">Text Color</Label>
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="h-6 w-6 rounded border" 
+                          <div
+                            className="h-6 w-6 rounded border"
                             style={{ backgroundColor: buttonTextColor }}
                           />
                           <Input
@@ -686,7 +737,7 @@ const CreatePopup = () => {
                   {/* Styling Options */}
                   <div>
                     <h3 className="font-medium">Styling Options</h3>
-                    
+
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
                         <Label htmlFor="backgroundColor">Background Color</Label>
@@ -706,7 +757,7 @@ const CreatePopup = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="textColor">Text Color</Label>
                         <div className="flex mt-1">
@@ -726,7 +777,7 @@ const CreatePopup = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       <div>
                         <Label htmlFor="popupWidth">Width</Label>
@@ -740,7 +791,7 @@ const CreatePopup = () => {
                           <span className="ml-2 text-sm text-gray-500">px/%</span>
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="popupHeight">Height</Label>
                         <div className="flex items-center mt-1">
@@ -756,8 +807,8 @@ const CreatePopup = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-purple-600 hover:bg-purple-700"
                     disabled={isSubmitting}
                   >
@@ -820,8 +871,8 @@ const CreatePopup = () => {
                         >
                           Create Another
                         </Button>
-                        <Button 
-                          onClick={() => navigate("/dashboard")} 
+                        <Button
+                          onClick={() => navigate("/dashboard")}
                           className="flex-1 bg-purple-600 hover:bg-purple-700"
                         >
                           Go to Dashboard

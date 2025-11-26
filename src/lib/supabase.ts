@@ -30,7 +30,7 @@ export const getPopups = async (userId: string) => {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-  
+
   if (error) throw error
   return data
 }
@@ -41,7 +41,7 @@ export const getPopup = async (id: string) => {
     .select('*')
     .eq('id', id)
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -55,7 +55,7 @@ export const createPopup = async (popup: Database['public']['Tables']['popups'][
     .insert(popup)
     .select()
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -67,7 +67,7 @@ export const updatePopup = async (id: string, popup: Database['public']['Tables'
     .eq('id', id)
     .select()
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -77,7 +77,7 @@ export const deletePopup = async (id: string) => {
     .from('popups')
     .delete()
     .eq('id', id)
-  
+
   if (error) throw error
   return true
 }
@@ -89,7 +89,7 @@ export const getShortLinks = async (userId: string) => {
     .select('*, popups(*)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-  
+
   if (error) throw error
   return data
 }
@@ -100,7 +100,7 @@ export const getShortLink = async (id: string) => {
     .select('*, popups(*)')
     .eq('id', id)
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -115,7 +115,7 @@ export const getShortLinkByPopupId = async (popupId: string) => {
     .select('*')
     .eq('popup_id', popupId)
     .maybeSingle() // Use maybeSingle instead of single to avoid errors when no rows are found
-  
+
   if (error) throw error
   return data
 }
@@ -126,7 +126,7 @@ export const getShortLinkBySlug = async (slug: string) => {
     .select('*, popups(*)')
     .eq('slug', slug)
     .maybeSingle() // Use maybeSingle instead of single to avoid errors when no rows are found
-  
+
   if (error) throw error
   return data
 }
@@ -140,21 +140,23 @@ export const createShortLink = async (shortLink: Database['public']['Tables']['s
         .select('id')
         .eq('slug', shortLink.slug)
         .maybeSingle();
-      
+
       // If slug exists, generate a new one
       if (existingSlug) {
-        console.log('Slug already exists, generating a new one');
+        if (import.meta.env.DEV) {
+          console.log('Slug already exists, generating a new one');
+        }
         shortLink.slug = `${shortLink.slug}-${Math.random().toString(36).substring(2, 6)}`;
       }
     }
-    
+
     // Insert the short link
     const { data, error } = await supabase
       .from('short_links')
       .insert(shortLink)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
@@ -170,7 +172,7 @@ export const updateShortLink = async (id: string, shortLink: Database['public'][
     .eq('id', id)
     .select()
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -180,7 +182,7 @@ export const deleteShortLink = async (id: string) => {
     .from('short_links')
     .delete()
     .eq('id', id)
-  
+
   if (error) throw error
   return true
 }
@@ -195,17 +197,19 @@ export const uploadFile = async (
     // We'll use a fixed bucket name that we know exists in the Supabase project
     // Based on the Supabase URL in the project configuration
     const bucketName = 'images'; // Use a simple bucket name that likely exists
-    
+
     // Create a clean file path without bucket prefix
     // Extract just the filename to avoid path issues
     const fileName = filePath.split('/').pop() || `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${file.name.split('.').pop()}`;
-    
+
     // Create a clean path with user ID if available
     const userId = filePath.includes('/') ? filePath.split('/')[1] : 'anonymous';
     const uploadPath = `${userId}/${fileName}`;
-    
-    console.log(`Uploading to bucket: ${bucketName}, path: ${uploadPath}`);
-    
+
+    if (import.meta.env.DEV) {
+      console.log(`Uploading to bucket: ${bucketName}, path: ${uploadPath}`);
+    }
+
     // Upload the file
     const { data, error } = await supabase.storage
       .from(bucketName)
@@ -213,7 +217,7 @@ export const uploadFile = async (
         cacheControl: '3600',
         upsert: true,
       });
-      
+
     // Since onUploadProgress isn't directly supported in the type,
     // we'll simulate progress after upload completes
     if (onProgress) {
@@ -222,15 +226,17 @@ export const uploadFile = async (
     }
 
     if (error) throw error;
-    
+
     // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(uploadPath);
-    
+
     // Log the URL for debugging
-    console.log('Generated public URL:', publicUrlData.publicUrl);
-    
+    if (import.meta.env.DEV) {
+      console.log('Generated public URL:', publicUrlData.publicUrl);
+    }
+
     // Return the public URL from Supabase
     return { data, publicUrl: publicUrlData.publicUrl };
   } catch (error) {
@@ -246,13 +252,13 @@ export const trackEvent = async (event: Database['public']['Tables']['analytics'
     .insert(event)
     .select()
     .single()
-  
+
   if (error) throw error
   return data
 }
 
-export const getAnalytics = async (userId: string, filters?: { 
-  shortLinkId?: string, 
+export const getAnalytics = async (userId: string, filters?: {
+  shortLinkId?: string,
   popupId?: string,
   startDate?: string,
   endDate?: string,
@@ -268,29 +274,29 @@ export const getAnalytics = async (userId: string, filters?: {
       )
     `)
     .eq('short_links.user_id', userId)
-  
+
   if (filters?.shortLinkId) {
     query = query.eq('short_link_id', filters.shortLinkId)
   }
-  
+
   if (filters?.popupId) {
     query = query.eq('popup_id', filters.popupId)
   }
-  
+
   if (filters?.eventType) {
     query = query.eq('event_type', filters.eventType)
   }
-  
+
   if (filters?.startDate) {
     query = query.gte('created_at', filters.startDate)
   }
-  
+
   if (filters?.endDate) {
     query = query.lte('created_at', filters.endDate)
   }
-  
+
   const { data, error } = await query.order('created_at', { ascending: false })
-  
+
   if (error) throw error
   return data
 }
@@ -302,9 +308,9 @@ export const getClickStats = async (userId: string) => {
     .from('short_links')
     .select('id')
     .eq('user_id', userId)
-  
+
   if (linksError) throw linksError
-  
+
   if (!links || links.length === 0) {
     return {
       totalClicks: 0,
@@ -312,22 +318,22 @@ export const getClickStats = async (userId: string) => {
       clicksByLink: {}
     }
   }
-  
+
   const linkIds = links.map(link => link.id)
-  
+
   // Get all click events for these links
   const { data: analytics, error: analyticsError } = await supabase
     .from('analytics')
     .select('short_link_id, event_type')
     .in('short_link_id', linkIds)
     .eq('event_type', 'click')
-  
+
   if (analyticsError) throw analyticsError
-  
+
   // Calculate statistics
   const totalClicks = analytics?.length || 0
   const avgClicksPerLink = links.length > 0 ? totalClicks / links.length : 0
-  
+
   // Group clicks by link
   const clicksByLink: Record<string, number> = {}
   analytics?.forEach(event => {
@@ -335,7 +341,7 @@ export const getClickStats = async (userId: string) => {
       clicksByLink[event.short_link_id] = (clicksByLink[event.short_link_id] || 0) + 1
     }
   })
-  
+
   return {
     totalClicks,
     avgClicksPerLink,
@@ -350,7 +356,7 @@ export const getShortLinkClicks = async (shortLinkId: string) => {
     .select('*')
     .eq('short_link_id', shortLinkId)
     .eq('event_type', 'click')
-  
+
   if (error) throw error
   return data?.length || 0
 }

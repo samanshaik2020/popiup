@@ -80,6 +80,9 @@ export interface Database {
           clicks: number
           created_at: string
           updated_at: string
+          og_title: string | null
+          og_description: string | null
+          og_image: string | null
         }
         Insert: {
           id?: string
@@ -93,6 +96,9 @@ export interface Database {
           clicks?: number
           created_at?: string
           updated_at?: string
+          og_title?: string | null
+          og_description?: string | null
+          og_image?: string | null
         }
         Update: {
           id?: string
@@ -106,6 +112,9 @@ export interface Database {
           clicks?: number
           created_at?: string
           updated_at?: string
+          og_title?: string | null
+          og_description?: string | null
+          og_image?: string | null
         }
         Relationships: [
           {
