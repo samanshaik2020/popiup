@@ -1,14 +1,14 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
-import { LinkIcon, ArrowLeft, Copy, ExternalLink, Loader2, UploadCloud, Image as ImageIcon, X } from "lucide-react";
+import { LinkIcon, ArrowLeft, Copy, ExternalLink, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PopupPreview } from "@/components/PopupPreview";
 import { RecentLinks } from "@/components/RecentLinks";
@@ -32,12 +32,7 @@ const CreatePopup = () => {
   const [logoText, setLogoText] = useState("");
   const [logoUrl, setLogoUrl] = useState("");  // No default URL
 
-  // Open Graph metadata for social media previews
-  const [ogTitle, setOgTitle] = useState("");
-  const [ogDescription, setOgDescription] = useState("");
-  const [ogImage, setOgImage] = useState("");
-  const [ogImageFile, setOgImageFile] = useState<File | null>(null);
-  const [isUploadingOgImage, setIsUploadingOgImage] = useState(false);
+
 
   // Image and Video States
   const [imageUrl, setImageUrl] = useState("");
@@ -78,7 +73,7 @@ const CreatePopup = () => {
   const { user } = useAuth();
 
   // Handle file upload
-  const handleFileUpload = async (file: File, fileType: 'logo' | 'image' | 'profile' | 'ogImage' = 'logo') => {
+  const handleFileUpload = async (file: File, fileType: 'logo' | 'image' | 'profile' = 'logo') => {
     if (!file || !user) return;
 
     try {
@@ -111,10 +106,6 @@ const CreatePopup = () => {
         case 'profile':
           setCtaProfileImageUrl(url);
           setCtaProfileImage(file);
-          break;
-        case 'ogImage':
-          setOgImage(url);
-          setOgImageFile(file);
           break;
       }
 
@@ -162,13 +153,25 @@ const CreatePopup = () => {
         profile_name: ctaName,
         description: ctaDescription,
         profile_url: ctaProfileUrl,
-        profile_image_url: ctaProfileImageUrl, // Add the profile image URL
+        profile_image_url: ctaProfileImageUrl,
         button_text: buttonText,
         button_link: buttonUrl,
         logo_text: logoText,
         logo_url: logoUrl,
-        image_url: imageUrl, // Add the main image URL
-        template: popupType === 'image' ? 'image' : ctaProfileImageUrl ? 'profile' : 'standard', // Set template based on content
+        image_url: imageUrl,
+        video_url: videoUrl || videoLinkUrl,
+        template: popupType === 'image' ? 'image' : popupType === 'video' ? 'video' : ctaProfileImageUrl ? 'profile' : 'standard',
+        // Styling options
+        background_color: backgroundColor,
+        text_color: textColor,
+        popup_width: popupWidth,
+        popup_height: popupHeight,
+        // Button styling
+        button_color: buttonColor,
+        button_text_color: buttonTextColor,
+        button_radius: buttonRadius,
+        button_padding: buttonPadding,
+        button_font_weight: buttonFontWeight,
       });
 
       // Debug the content being saved
@@ -199,10 +202,7 @@ const CreatePopup = () => {
         destination_url: originalUrl,
         title: adName,
         description: ctaDescription || null,
-        active: true,
-        og_title: ogTitle || null,
-        og_description: ogDescription || null,
-        og_image: ogImage || null
+        active: true
       });
 
       // Function to generate the full short link URL
@@ -317,99 +317,6 @@ const CreatePopup = () => {
                     />
                   </div>
 
-                  {/* Social Media Preview Section */}
-                  <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div>
-                      <h3 className="font-medium text-blue-900 mb-1">Social Media Preview</h3>
-                      <p className="text-sm text-blue-700">Customize how your link appears when shared on social media</p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="ogTitle">Preview Title</Label>
-                      <Input
-                        id="ogTitle"
-                        placeholder="Title shown when link is shared (leave empty to use destination URL's title)"
-                        value={ogTitle}
-                        onChange={(e) => setOgTitle(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">This will appear as the title in social media previews</p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="ogDescription">Preview Description</Label>
-                      <Textarea
-                        id="ogDescription"
-                        placeholder="Description shown when link is shared"
-                        value={ogDescription}
-                        onChange={(e) => setOgDescription(e.target.value)}
-                        rows={2}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">This will appear as the description in social media previews</p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="ogImage">Preview Image</Label>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-4">
-                          <Input
-                            id="ogImage"
-                            type="url"
-                            placeholder="https://example.com/image.jpg"
-                            value={ogImage}
-                            onChange={(e) => setOgImage(e.target.value)}
-                            className="flex-1"
-                          />
-                          <div className="relative">
-                            <input
-                              type="file"
-                              id="ogImageUpload"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleFileUpload(file, 'ogImage');
-                              }}
-                              disabled={isUploading}
-                            />
-                            <Label
-                              htmlFor="ogImageUpload"
-                              className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                              {isUploading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <UploadCloud className="h-4 w-4" />
-                              )}
-                              <span className="text-sm font-medium">Upload</span>
-                            </Label>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-500">Image shown in social media previews (recommended: 1200x630px)</p>
-                      </div>
-                      {ogImage && (
-                        <div className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-lg overflow-hidden border border-gray-200 mt-3">
-                          <img
-                            src={ogImage}
-                            alt="Social Preview"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "https://via.placeholder.com/1200x630?text=Invalid+Image+URL";
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOgImage("");
-                              setOgImageFile(null);
-                            }}
-                            className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
                   {/* Popup Type */}
                   {/* Template Selection */}
@@ -912,6 +819,25 @@ const CreatePopup = () => {
                             title="Open in new tab"
                           >
                             <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Link Preview Settings - Redirect to SEOLnk */}
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium text-blue-900 mb-1">Link Preview for Social Media</h3>
+                            <p className="text-sm text-blue-700">Customize how your link appears when shared on social media</p>
+                          </div>
+                          <a
+                            href="https://seolnk.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md transition-colors"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Go to SEOLnk
                           </a>
                         </div>
                       </div>

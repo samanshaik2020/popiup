@@ -32,13 +32,26 @@ interface ParsedPopupContent {
   profile_url?: string;
   profile_image_url?: string;
   image_url?: string;
+  video_url?: string;
   description?: string;
   button_text?: string;
   button_link?: string;
   logo_text?: string;
+  logo_url?: string;
   placement?: string;
   delay_seconds?: number;
   template?: string;
+  // Styling options
+  background_color?: string;
+  text_color?: string;
+  popup_width?: string;
+  popup_height?: string;
+  // Button styling
+  button_color?: string;
+  button_text_color?: string;
+  button_radius?: string;
+  button_padding?: string;
+  button_font_weight?: string;
   [key: string]: unknown;
 }
 
@@ -334,12 +347,22 @@ const RedirectPage = () => {
     switch (placement) {
       case "top":
         return "top-4 left-1/2 transform -translate-x-1/2";
+      case "bottom":
+        return "bottom-4 left-1/2 transform -translate-x-1/2";
       case "left":
         return "top-1/2 left-4 transform -translate-y-1/2";
       case "right":
         return "top-1/2 right-4 transform -translate-y-1/2";
       case "center":
         return "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2";
+      case "top-left":
+        return "top-4 left-4";
+      case "top-right":
+        return "top-4 right-4";
+      case "bottom-left":
+        return "bottom-4 left-4";
+      case "bottom-right":
+        return "bottom-4 right-4";
       default:
         return "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2";
     }
@@ -452,8 +475,40 @@ const RedirectPage = () => {
         {/* Popup Overlay */}
         {showPopup && popupContent && (
           <div className={`fixed ${getPlacementStyles()} z-50`}>
-            <Card className="w-[400px] max-w-[90%] shadow-xl">
+            <Card
+              className="max-w-[90%] shadow-xl"
+              style={{
+                width: popupContent.popup_width || '400px',
+                height: popupContent.popup_height || 'auto',
+                backgroundColor: popupContent.background_color || '#ffffff',
+                color: popupContent.text_color || '#000000'
+              }}
+            >
               <CardContent className="p-4">
+                {/* Logo section */}
+                {(popupContent.logo_text || popupContent.logo_url) && (
+                  <div className="flex items-center mb-3">
+                    {popupContent.logo_url && (
+                      <img
+                        src={popupContent.logo_url}
+                        alt="Logo"
+                        className="h-6 mr-2 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    {popupContent.logo_text && (
+                      <div
+                        className="text-sm font-medium"
+                        style={{ color: popupContent.text_color || '#000000' }}
+                      >
+                        {popupContent.logo_text}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center">
                     {/* Profile image if available */}
@@ -468,7 +523,12 @@ const RedirectPage = () => {
                         }}
                       />
                     )}
-                    <h3 className="font-semibold">{popupContent.profile_name}</h3>
+                    <h3
+                      className="font-semibold"
+                      style={{ color: popupContent.text_color || '#000000' }}
+                    >
+                      {popupContent.profile_name}
+                    </h3>
                   </div>
                   <Button
                     variant="ghost"
@@ -480,8 +540,8 @@ const RedirectPage = () => {
                   </Button>
                 </div>
 
-                {/* Main image if available */}
-                {popupContent.image_url && (
+                {/* Main image if available (for image template) */}
+                {popupContent.template === 'image' && popupContent.image_url && (
                   <div className="mb-4 rounded-md overflow-hidden">
                     <img
                       src={popupContent.image_url}
@@ -495,21 +555,39 @@ const RedirectPage = () => {
                   </div>
                 )}
 
-                <p className="text-sm text-gray-700 mb-4 break-words overflow-hidden">{popupContent.description}</p>
+                {/* Video if available (for video template) */}
+                {popupContent.template === 'video' && popupContent.video_url && (
+                  <div className="mb-4 rounded-md overflow-hidden">
+                    <video
+                      src={popupContent.video_url}
+                      controls
+                      className="w-full h-auto"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                )}
+
+                <p
+                  className="text-sm mb-4 break-words overflow-hidden"
+                  style={{ color: popupContent.text_color || '#000000' }}
+                >
+                  {popupContent.description}
+                </p>
 
                 <Button
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  className="w-full"
                   onClick={handleButtonClick}
+                  style={{
+                    backgroundColor: popupContent.button_color || '#6D28D9',
+                    color: popupContent.button_text_color || '#FFFFFF',
+                    borderRadius: popupContent.button_radius || '0.375rem',
+                    padding: popupContent.button_padding || '0.5rem 1rem',
+                    fontWeight: popupContent.button_font_weight || '500'
+                  }}
                 >
                   {popupContent.button_text}
                 </Button>
-
-                <div className="mt-2 text-xs text-center text-gray-400">
-                  {/* Debug info */}
-                  <div className="text-xs text-gray-400 mt-1">
-                    Template: {popupContent.template || 'standard'}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>

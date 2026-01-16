@@ -19,7 +19,7 @@ const EditPopup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   // Form states
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,11 +35,11 @@ const EditPopup = () => {
   const [ctaDescription, setCtaDescription] = useState("");
   const [buttonText, setButtonText] = useState("Learn More");
   const [buttonUrl, setButtonUrl] = useState("");
-  
+
   // Profile image states
   const [ctaProfileImageUrl, setCtaProfileImageUrl] = useState("");
   const [ctaProfileImage, setCtaProfileImage] = useState<File | null>(null);
-  
+
   // Media upload states
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -47,13 +47,13 @@ const EditPopup = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  
+
   // Enhanced styling states with separate controls
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [textColor, setTextColor] = useState("#000000");
   const [popupWidth, setPopupWidth] = useState("400px");
   const [popupHeight, setPopupHeight] = useState("auto");
-  
+
   // Combined styles object for compatibility with existing code
   const styles = {
     backgroundColor,
@@ -61,30 +61,39 @@ const EditPopup = () => {
     width: popupWidth,
     height: popupHeight
   };
-  
+
   // Preview data that matches the PopupPreview component's expected props
   const previewData = {
     type: popupType,
-    placement: position, // match the expected prop name
+    placement: position,
     delay: parseInt(triggerValue),
     ctaName: ctaName,
     ctaDescription: ctaDescription,
-    ctaProfileUrl: ctaProfileImageUrl || "", // Use the uploaded profile image URL
+    ctaProfileUrl: "",
+    ctaProfileImageUrl: ctaProfileImageUrl || "",
     buttonText: buttonText,
     buttonUrl: buttonUrl,
     logoText: "",
-    logoUrl: imageUrl || "", // Use the uploaded image URL if available
-    videoUrl: videoUrl || "" // Add video URL if available
+    logoUrl: "",
+    imageUrl: imageUrl || "",
+    videoUrl: videoUrl || "",
+    // Styling options
+    backgroundColor,
+    textColor,
+    popupWidth,
+    popupHeight,
+    // Template
+    template: popupType === 'image' ? 'image' : popupType === 'video' ? 'video' : ctaProfileImageUrl ? 'profile' : 'standard',
   };
-  
+
   // Fetch popup data
   useEffect(() => {
     const fetchPopupData = async () => {
       if (!id || !user) return;
-      
+
       try {
         setLoading(true);
-        
+
         // Fetch popup details
         const popupData = await getPopupById(id);
         if (!popupData) {
@@ -96,7 +105,7 @@ const EditPopup = () => {
           navigate("/dashboard");
           return;
         }
-        
+
         // Check ownership
         if (popupData.user_id !== user.id) {
           toast({
@@ -107,17 +116,17 @@ const EditPopup = () => {
           navigate("/dashboard");
           return;
         }
-        
+
         // Fetch associated short link
         const shortLinkData = await getShortLinkByPopupId(popupData.id);
-        
+
         // Populate form fields
         setName(popupData.name || "");
         setContent(popupData.content || "");
         setPopupType(popupData.type || "text");
         setPosition(popupData.position || "top");
         setTriggerType(popupData.trigger_type || "delay");
-        
+
         // Fix for the trigger_value type issue
         if (popupData.trigger_value) {
           if (typeof popupData.trigger_value === 'string') {
@@ -129,27 +138,36 @@ const EditPopup = () => {
             setTriggerValue("3");
           }
         }
-        
-        // Set CTA fields if available
+
+        // Set CTA fields if available - use new format field names from CreatePopup
         try {
           const contentObj = JSON.parse(popupData.content);
-          setCtaName(contentObj.name || "");
+          // Support both old and new field names
+          setCtaName(contentObj.profile_name || contentObj.name || "");
           setCtaDescription(contentObj.description || "");
-          setButtonText(contentObj.buttonText || "Learn More");
-          setButtonUrl(contentObj.buttonUrl || "");
+          setButtonText(contentObj.button_text || contentObj.buttonText || "Learn More");
+          setButtonUrl(contentObj.button_link || contentObj.buttonUrl || "");
+          setCtaProfileImageUrl(contentObj.profile_image_url || "");
+          setImageUrl(contentObj.image_url || "");
+          setVideoUrl(contentObj.video_url || "");
+          // Load styling from content if available
+          if (contentObj.background_color) setBackgroundColor(contentObj.background_color);
+          if (contentObj.text_color) setTextColor(contentObj.text_color);
+          if (contentObj.popup_width) setPopupWidth(contentObj.popup_width);
+          if (contentObj.popup_height) setPopupHeight(contentObj.popup_height);
         } catch (error) {
           // If content is not valid JSON, use it as plain text
           setContent(popupData.content);
         }
-        
+
         // Set styles if available
         if (popupData.styles) {
           try {
             // Safely handle styles which could be a string or an object
-            const stylesData = typeof popupData.styles === 'string' 
-              ? JSON.parse(popupData.styles) 
+            const stylesData = typeof popupData.styles === 'string'
+              ? JSON.parse(popupData.styles)
               : popupData.styles;
-              
+
             // Only spread if it's actually an object
             if (stylesData && typeof stylesData === 'object') {
               setBackgroundColor(stylesData.backgroundColor || backgroundColor);
@@ -161,7 +179,7 @@ const EditPopup = () => {
             console.error('Error parsing styles:', error);
           }
         }
-        
+
         if (shortLinkData) {
           setOriginalUrl(shortLinkData.destination_url);
         }
@@ -176,14 +194,14 @@ const EditPopup = () => {
         setLoading(false);
       }
     };
-    
+
     fetchPopupData();
   }, [id, user, navigate, toast]);
-  
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!id || !user) {
       toast({
         title: "Error",
@@ -192,25 +210,40 @@ const EditPopup = () => {
       });
       return;
     }
-    
+
     try {
       setSaving(true);
-      
-      // Create content object
+
+      // Create content object - matching the format from CreatePopup
       const contentObj = {
-        name: ctaName,
+        type: popupType,
+        placement: position,
+        delay_seconds: parseInt(triggerValue),
+        profile_name: ctaName,
         description: ctaDescription,
-        buttonText,
-        buttonUrl
+        profile_url: "",
+        profile_image_url: ctaProfileImageUrl,
+        button_text: buttonText,
+        button_link: buttonUrl,
+        logo_text: "",
+        logo_url: "",
+        image_url: imageUrl,
+        video_url: videoUrl,
+        template: popupType === 'image' ? 'image' : popupType === 'video' ? 'video' : ctaProfileImageUrl ? 'profile' : 'standard',
+        // Styling options
+        background_color: backgroundColor,
+        text_color: textColor,
+        popup_width: popupWidth,
+        popup_height: popupHeight,
       };
-      
+
       const popupData = {
         name,
         content: JSON.stringify(contentObj),
         type: popupType,
         position,
-        triggerType,
-        triggerValue,
+        trigger_type: triggerType,
+        trigger_value: parseInt(triggerValue),
         styles: JSON.stringify({
           backgroundColor,
           textColor,
@@ -218,15 +251,15 @@ const EditPopup = () => {
           height: popupHeight
         }),
       };
-      
+
       // Update popup
       await updatePopup(id, popupData);
-      
+
       toast({
         title: "Success",
         description: "Popup updated successfully"
       });
-      
+
       // Navigate to dashboard after short delay
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (error: any) {
@@ -251,7 +284,7 @@ const EditPopup = () => {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Dashboard
       </Button>
-      
+
       <div className="grid md:grid-cols-2 gap-8">
         {loading ? (
           <div className="md:col-span-2 flex justify-center items-center p-12">
@@ -276,11 +309,11 @@ const EditPopup = () => {
                       required
                     />
                   </div>
-                  
+
                   {/* Custom Styling Controls */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Popup Styling</h3>
-                    
+
                     {/* Background Color */}
                     <div>
                       <Label htmlFor="bgColor">Background Color</Label>
@@ -300,7 +333,7 @@ const EditPopup = () => {
                         />
                       </div>
                     </div>
-                    
+
                     {/* Text Color */}
                     <div>
                       <Label htmlFor="textColor">Text Color</Label>
@@ -320,7 +353,7 @@ const EditPopup = () => {
                         />
                       </div>
                     </div>
-                    
+
                     {/* Popup Dimensions */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -366,7 +399,7 @@ const EditPopup = () => {
                       </div>
                     </RadioGroup>
                   </div>
-                  
+
                   <div>
                     <Label>Position</Label>
                     <Select value={position} onValueChange={setPosition}>
@@ -379,10 +412,14 @@ const EditPopup = () => {
                         <SelectItem value="left">Left</SelectItem>
                         <SelectItem value="right">Right</SelectItem>
                         <SelectItem value="center">Center</SelectItem>
+                        <SelectItem value="top-left">Top Left</SelectItem>
+                        <SelectItem value="top-right">Top Right</SelectItem>
+                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label>Trigger</Label>
                     <Select value={triggerType} onValueChange={setTriggerType}>
@@ -395,7 +432,7 @@ const EditPopup = () => {
                         <SelectItem value="exit">Exit Intent</SelectItem>
                       </SelectContent>
                     </Select>
-                    
+
                     {triggerType === "delay" && (
                       <div className="mt-2">
                         <Label htmlFor="delay">Delay (seconds)</Label>
@@ -409,7 +446,7 @@ const EditPopup = () => {
                         />
                       </div>
                     )}
-                    
+
                     {triggerType === "scroll" && (
                       <div className="mt-2">
                         <Label htmlFor="scroll">Scroll percentage</Label>
@@ -424,7 +461,7 @@ const EditPopup = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div>
                     <Label>Choose a Template</Label>
                     <div className="grid grid-cols-3 gap-4 mt-2">
@@ -451,7 +488,7 @@ const EditPopup = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="ctaName">Header Text</Label>
                     <Input
@@ -461,7 +498,7 @@ const EditPopup = () => {
                       placeholder="Header text for your popup"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="ctaDescription">Description</Label>
                     <Textarea
@@ -472,7 +509,7 @@ const EditPopup = () => {
                       rows={3}
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="buttonText">Button Text</Label>
                     <Input
@@ -482,7 +519,7 @@ const EditPopup = () => {
                       placeholder="Text to display on the button"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="buttonUrl">Button URL</Label>
                     <Input
@@ -492,7 +529,7 @@ const EditPopup = () => {
                       placeholder="URL for the button click"
                     />
                   </div>
-                  
+
                   <div>
                     <Label>Styling Options</Label>
                     <div className="grid grid-cols-2 gap-4 mt-2">
@@ -552,7 +589,7 @@ const EditPopup = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Button
                     type="submit"
                     className="w-full bg-purple-600 hover:bg-purple-700"
@@ -570,7 +607,7 @@ const EditPopup = () => {
                 </form>
               </CardContent>
             </Card>
-            
+
             {/* Preview */}
             <Card>
               <CardHeader>
